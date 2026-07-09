@@ -11,7 +11,7 @@ export async function getEmbedding(text: string){
             type: "openai",
             client: openAi,
             model: "text-embedding-3-large"
-        });
+        }); 
     }
 
     if(process.env.OPENROUTER_API_KEY){
