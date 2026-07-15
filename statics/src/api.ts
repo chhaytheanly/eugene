@@ -25,6 +25,68 @@ export const sendMessage = async (
   return data;
 };
 
+export const streamChat = async (
+  message: string,
+  conversationId: string | undefined,
+  model: string | undefined,
+  provider: string | undefined,
+  handlers: {
+    onToken: (token: string) => void;
+    onTool?: (name: string) => void;
+    onDone: (convId: string) => void;
+    onError: (err: string) => void;
+  }
+) => {
+  try {
+    const res = await fetch(`${baseUrl}/chat/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, conversationId, model, provider }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    if (!res.body) throw new Error("No response body");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
+
+      for (const line of lines) {
+        if (line.trim() === "") continue;
+        if (line.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === "token") {
+              handlers.onToken(data.value);
+            } else if (data.type === "tool") {
+              handlers.onTool?.(data.name);
+            } else if (data.type === "done") {
+              handlers.onDone(data.conversationId);
+            } else if (data.type === "error") {
+              handlers.onError(data.error);
+            }
+          } catch {
+            console.error("Failed to parse SSE line", line);
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    handlers.onError(err.message || "Failed to stream chat");
+  }
+};
+
 export const getModels = async (): Promise<ModelInfo[]> =>
   (await api.get('/models')).data.models;
 
