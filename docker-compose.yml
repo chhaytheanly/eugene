@@ -35,6 +35,53 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     restart: unless-stopped
 
+  api:
+    image: oven/bun:latest
+    container_name: api
+    working_dir: /app
+
+    volumes:
+      - ./server:/app
+      - api_node_modules:/app/node_modules
+
+    command: >
+      sh -c "
+      bun install &&
+      bun run dev
+      "
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    env_file:
+      - ./server/.env
+      
+    ports:
+      - "6868:6868"
+
+  web:
+    image: oven/bun:latest
+    container_name: web
+    working_dir: /app
+
+    volumes:
+      - ./statics:/app
+      - web_node_modules:/app/node_modules
+
+    command: sh -c "bun install && bun run dev --host 0.0.0.0"
+
+    env_file:
+      - ./statics/.env
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - api
+
 volumes:
   pgdata:
   pgadmin_data:
+  api_node_modules:
+  web_node_modules:

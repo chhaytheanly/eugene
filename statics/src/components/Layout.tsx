@@ -53,7 +53,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <span className="text-sm font-semibold tracking-tight">eugene</span>
             <span className="text-[10px] text-[var(--muted-foreground)] border border-[var(--border)] rounded px-1 leading-tight">v0</span>
           </div>
-          <p className="text-[10px] text-[var(--muted-foreground)] mt-1.5 ml-6">ai work assistant</p>
+          <p className="text-[10px] text-[var(--muted-foreground)] mt-1.5 ml-6">personal ai assistant</p>
         </div>
 
         <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
