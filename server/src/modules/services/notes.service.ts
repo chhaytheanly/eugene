@@ -1,5 +1,6 @@
 import { prisma } from "../../database/prisma";
 import { getEmbedding } from "./embedding/embedding";
+import { setEmbedding } from "./embedding/embeddingDb";
 
 export async function createNote(title: string, content: string) {
   let embedding: number[] | undefined;
@@ -9,13 +10,18 @@ export async function createNote(title: string, content: string) {
     console.warn("No embedding provider available, saving note without vector");
   }
 
-  return prisma.note.create({
+  const note = await prisma.note.create({
     data: {
       title,
       content,
-      ...(embedding ? { embedding } : {}),
     },
   });
+
+  if (embedding) {
+    await setEmbedding("Note", note.id, embedding);
+  }
+
+  return note;
 }
 
 export async function getNote(id: string) {
@@ -39,13 +45,16 @@ export async function updateNote(id: string, data: { title?: string; content?: s
     }
   }
 
-  return prisma.note.update({
+  const note = await prisma.note.update({
     where: { id },
-    data: {
-      ...data,
-      ...(embedding ? { embedding } : {}),
-    },
+    data,
   });
+
+  if (embedding) {
+    await setEmbedding("Note", id, embedding);
+  }
+
+  return note;
 }
 
 export async function deleteNote(id: string) {
