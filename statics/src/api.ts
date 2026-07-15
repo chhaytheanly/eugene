@@ -1,14 +1,32 @@
 import axios from 'axios';
 
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:6868';
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: baseUrl,
 });
 
 // Chat
-export const sendMessage = async (message: string, conversationId?: string) => {
-  const { data } = await api.post('/chat', { message, conversationId });
+export type ModelInfo = {
+  id: string;
+  name: string;
+  provider: "openai" | "openrouter" | "opencode" | "gemini";
+  description?: string;
+  contextLength?: number;
+};
+
+export const sendMessage = async (
+  message: string,
+  conversationId?: string,
+  model?: string,
+  provider?: string
+) => {
+  const { data } = await api.post('/chat', { message, conversationId, model, provider });
   return data;
 };
+
+export const getModels = async (): Promise<ModelInfo[]> =>
+  (await api.get('/models')).data.models;
 
 // Notes
 export const getNotes = async () => (await api.get('/notes')).data;

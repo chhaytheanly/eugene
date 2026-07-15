@@ -1,10 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { chat } from "../services/chat.service";
+import type { ModelProvider } from "../services/models.service";
 
 const router = Router();
 
 router.post("/chat", async (req: Request, res: Response) => {
-  const { message, conversationId } = req.body;
+  const { message, conversationId, model, provider } = req.body;
 
   if (!message) {
     res.status(400).json({ error: "message is required" });
@@ -12,7 +13,12 @@ router.post("/chat", async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await chat(message, conversationId);
+    const result = await chat(
+      message,
+      conversationId,
+      model,
+      provider as ModelProvider | undefined
+    );
     res.json(result);
   } catch (error) {
     console.error("Chat error:", error);

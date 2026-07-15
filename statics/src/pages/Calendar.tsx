@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Trash2, Calendar as CalendarIcon, Plus, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { getEvents, createEvent, deleteEvent } from "../api";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
 
-export default function Calendar() {
+export default function CalendarPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
+  useEffect(() => { loadEvents(); }, []);
 
   const loadEvents = async () => {
-    try {
-      const data = await getEvents();
-      setEvents(data);
-    } catch (err) {
-      console.error(err);
-    }
+    try { setEvents(await getEvents()); } catch (err) { console.error(err); }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -28,118 +23,138 @@ export default function Calendar() {
     if (!newTitle.trim() || !newStart || !newEnd) return;
     try {
       await createEvent({ title: newTitle, start: newStart, end: newEnd });
-      setNewTitle("");
-      setNewStart("");
-      setNewEnd("");
-      setIsCreating(false);
+      setNewTitle(""); setNewStart(""); setNewEnd(""); setIsCreating(false);
       loadEvents();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteEvent(id);
-      loadEvents();
-    } catch (err) {
-      console.error(err);
-    }
+    try { await deleteEvent(id); loadEvents(); } catch (err) { console.error(err); }
   };
 
+  const now = new Date();
+  const upcoming = events.filter((e) => new Date(e.end) > now)
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  const past = events.filter((e) => new Date(e.end) <= now)
+    .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+
   return (
-    <div className="p-8 max-w-4xl mx-auto w-full flex flex-col h-full">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface)] shrink-0 flex items-center gap-3">
+        <CalendarIcon className="w-4 h-4 text-[var(--accent)]" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">Schedule and manage your events.</p>
+          <span className="text-xs font-semibold">calendar</span>
+          <span className="text-[10px] text-[var(--muted-foreground)] ml-2">{upcoming.length} upcoming</span>
         </div>
-        <button
-          onClick={() => setIsCreating(!isCreating)}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--foreground)] text-[var(--background)] rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          Add Event
-        </button>
+        <Button variant="ghost" size="sm" onClick={() => setIsCreating(!isCreating)} className="ml-auto">
+          <Plus className="w-3 h-3" />
+          {isCreating ? "close" : "event"}
+        </Button>
       </div>
 
+      {/* Create form */}
       {isCreating && (
-        <form onSubmit={handleCreate} className="mb-8 p-6 border border-[var(--border)] rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 bg-[var(--muted)]">
-          <div className="col-span-full md:col-span-1">
-            <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Event Title</label>
+        <form onSubmit={handleCreate} className="border-b border-[var(--border)] bg-[var(--background)]">
+          <div className="px-5 py-4 space-y-3 max-w-4xl mx-auto">
             <input
               type="text"
+              placeholder="event title"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+              className="w-full bg-transparent text-[13px] font-mono border-b border-[var(--border)] pb-2 focus:outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--muted-foreground)]"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Start Time</label>
-            <input
-              type="datetime-local"
-              value={newStart}
-              onChange={(e) => setNewStart(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">End Time</label>
-            <input
-              type="datetime-local"
-              value={newEnd}
-              onChange={(e) => setNewEnd(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
-            />
-          </div>
-          <div className="col-span-full flex justify-end gap-3 mt-2">
-            <button
-              type="button"
-              onClick={() => setIsCreating(false)}
-              className="px-4 py-2 text-sm font-medium hover:bg-[var(--background)] rounded-md transition-colors border border-transparent hover:border-[var(--border)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[var(--foreground)] text-[var(--background)] rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              Save Event
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-[var(--muted-foreground)] block mb-1">start</label>
+                <input
+                  type="datetime-local"
+                  value={newStart}
+                  onChange={(e) => setNewStart(e.target.value)}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] rounded-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-[var(--muted-foreground)] block mb-1">end</label>
+                <input
+                  type="datetime-local"
+                  value={newEnd}
+                  onChange={(e) => setNewEnd(e.target.value)}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] rounded-sm"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsCreating(false)}>cancel</Button>
+              <Button type="submit" size="sm" disabled={!newTitle.trim() || !newStart || !newEnd}>save</Button>
+            </div>
           </div>
         </form>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2">
-        {events.map((event) => (
-          <div key={event.id} className="group flex items-center justify-between p-4 border border-[var(--border)] rounded-lg hover:border-[var(--muted-foreground)] transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center shrink-0">
-                <CalendarIcon className="w-5 h-5 text-[var(--foreground)]" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium">{event.title}</h3>
-                <div className="flex items-center gap-2 mt-1 text-xs text-[var(--muted-foreground)]">
-                  <Clock className="w-3 h-3" />
-                  <span>
-                    {format(new Date(event.start), "MMM d, h:mm a")} - {format(new Date(event.end), "h:mm a")}
-                  </span>
-                </div>
-              </div>
+      {/* Event list */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          {events.length === 0 && !isCreating && (
+            <div className="text-center py-16 text-[var(--muted-foreground)]">
+              <CalendarIcon className="w-8 h-8 opacity-10 mx-auto mb-3" />
+              <p className="text-xs">no events scheduled</p>
             </div>
-            <button
-              onClick={() => handleDelete(event.id)}
-              className="opacity-0 group-hover:opacity-100 p-2 text-[var(--muted-foreground)] hover:text-red-500 hover:bg-[var(--muted)] rounded-md transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-        {events.length === 0 && !isCreating && (
-          <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
-            No upcoming events.
-          </div>
-        )}
+          )}
+
+          {upcoming.length > 0 && (
+            <>
+              <div className="px-5 py-2 text-[10px] text-[var(--accent)] uppercase tracking-wider bg-[var(--surface)] border-b border-[var(--border)]">
+                upcoming
+              </div>
+              {upcoming.map((event) => (
+                <div key={event.id} className="flex items-center gap-3 px-5 py-2.5 border-b border-[var(--border)] hover:bg-[var(--surface)] transition-colors group text-[13px]">
+                  <div className="w-1 h-8 rounded-full bg-[var(--accent)] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="truncate block">{event.title}</span>
+                    <span className="text-[10px] text-[var(--muted-foreground)] flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      {format(new Date(event.start), "MMM d, h:mm a")} – {format(new Date(event.end), "h:mm a")}
+                    </span>
+                  </div>
+                  <Badge variant="success">active</Badge>
+                  <button
+                    onClick={() => handleDelete(event.id)}
+                    className="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-red-500 transition-all shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+
+          {past.length > 0 && (
+            <>
+              <div className="px-5 py-2 text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider bg-[var(--surface)] border-b border-[var(--border)]">
+                past ({past.length})
+              </div>
+              {past.map((event) => (
+                <div key={event.id} className="flex items-center gap-3 px-5 py-2.5 border-b border-[var(--border)] opacity-50 group text-[13px]">
+                  <div className="w-1 h-8 rounded-full bg-[var(--muted-foreground)] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="truncate block">{event.title}</span>
+                    <span className="text-[10px] text-[var(--muted-foreground)] flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      {format(new Date(event.start), "MMM d, h:mm a")}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(event.id)}
+                    className="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-red-500 transition-all shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
