@@ -9,6 +9,7 @@ import * as calendarService from "./calendar.service";
 import * as memoryService from "./memory.service";
 import * as searchService from "./search.service";
 import { webSearch, webFetch } from "./tools/web.service";
+import { buildClient, defaultProvider, defaultModel, type ModelProvider } from "./models.service";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
@@ -216,25 +217,6 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   },
 ];
 
-function getClient(): OpenAI {
-  if (process.env.OPENAI_API_KEY) {
-    return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  if (process.env.OPENROUTER_API_KEY) {
-    return new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: "https://openrouter.ai/api/v1",
-    });
-  }
-  throw new Error("No LLM provider configured. Set OPENAI_API_KEY or OPENROUTER_API_KEY.");
-}
-
-function getModel(): string {
-  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_MODEL || "gpt-4o";
-  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_MODEL || "openai/gpt-4o";
-  return "gpt-4o";
-}
-
 type FunctionToolCall = Extract<OpenAI.Chat.Completions.ChatCompletionMessageToolCall, { type: "function" }>;
 
 async function executeToolCall(toolCall: FunctionToolCall): Promise<string> {
@@ -303,9 +285,15 @@ export type ChatResponse = {
   reply: string;
 };
 
-export async function chat(message: string, conversationId?: string): Promise<ChatResponse> {
-  const client = getClient();
-  const model = getModel();
+export async function chat(
+  message: string,
+  conversationId?: string,
+  model?: string,
+  provider?: ModelProvider
+): Promise<ChatResponse> {
+  const client = buildClient(provider);
+  const resolvedProvider = provider ?? defaultProvider();
+  const resolvedModel = model || defaultModel(resolvedProvider);
 
   const systemContent = getSystemPrompt();
 
@@ -321,13 +309,13 @@ export async function chat(message: string, conversationId?: string): Promise<Ch
       ) ?? [];
     } else {
       const conv = await prisma.conversation.create({
-        data: { messages: [], modelUsed: model },
+        data: { messages: [], modelUsed: resolvedModel },
       });
       conversationId = conv.id;
     }
   } else {
     const conv = await prisma.conversation.create({
-      data: { messages: [], modelUsed: model },
+      data: { messages: [], modelUsed: resolvedModel },
     });
     conversationId = conv.id;
   }
@@ -342,7 +330,7 @@ export async function chat(message: string, conversationId?: string): Promise<Ch
   ];
 
   const response = await client.chat.completions.create({
-    model,
+    model: resolvedModel,
     messages,
     tools,
     tool_choice: "auto",
@@ -376,7 +364,7 @@ export async function chat(message: string, conversationId?: string): Promise<Ch
     ];
 
     const followUp = await client.chat.completions.create({
-      model,
+      model: resolvedModel,
       messages: followUpMessages,
     });
 

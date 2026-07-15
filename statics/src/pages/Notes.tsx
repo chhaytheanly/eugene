@@ -1,25 +1,20 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2, FileText, Plus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { getNotes, createNote, deleteNote } from "../api";
+import { Button } from "../components/ui/button";
 
 export default function Notes() {
   const [notes, setNotes] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadNotes();
-  }, []);
+  useEffect(() => { loadNotes(); }, []);
 
   const loadNotes = async () => {
-    try {
-      const data = await getNotes();
-      setNotes(data);
-    } catch (err) {
-      console.error(err);
-    }
+    try { setNotes(await getNotes()); } catch (err) { console.error(err); }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -27,96 +22,111 @@ export default function Notes() {
     if (!newTitle.trim() || !newContent.trim()) return;
     try {
       await createNote({ title: newTitle, content: newContent });
-      setNewTitle("");
-      setNewContent("");
-      setIsCreating(false);
+      setNewTitle(""); setNewContent(""); setIsCreating(false);
       loadNotes();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteNote(id);
-      loadNotes();
-    } catch (err) {
-      console.error(err);
-    }
+    try { await deleteNote(id); loadNotes(); } catch (err) { console.error(err); }
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full flex flex-col h-full">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface)] shrink-0 flex items-center gap-3">
+        <FileText className="w-4 h-4 text-[var(--accent)]" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Notes</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">Capture ideas, summaries, and long-form documents.</p>
+          <span className="text-xs font-semibold">notes</span>
+          <span className="text-[10px] text-[var(--muted-foreground)] ml-2">{notes.length} files</span>
         </div>
-        <button
-          onClick={() => setIsCreating(!isCreating)}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--foreground)] text-[var(--background)] rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => { setIsCreating(!isCreating); setExpanded(null); }}
+          className="ml-auto"
         >
-          <Plus className="w-4 h-4" />
-          New Note
-        </button>
+          <Plus className="w-3 h-3" />
+          {isCreating ? "close" : "new"}
+        </Button>
       </div>
 
+      {/* Create form */}
       {isCreating && (
-        <form onSubmit={handleCreate} className="mb-8 p-6 bg-[var(--muted)] border border-[var(--border)] rounded-lg">
-          <input
-            type="text"
-            placeholder="Note Title"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            className="w-full bg-transparent text-lg font-medium border-b border-[var(--border)] pb-2 mb-4 focus:outline-none focus:border-[var(--foreground)] transition-colors"
-          />
-          <textarea
-            placeholder="Write your note in markdown..."
-            value={newContent}
-            onChange={(e) => setNewContent(e.target.value)}
-            rows={5}
-            className="w-full bg-transparent text-sm resize-none focus:outline-none"
-          />
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              type="button"
-              onClick={() => setIsCreating(false)}
-              className="px-4 py-2 text-sm font-medium hover:bg-[var(--background)] rounded-md transition-colors border border-transparent hover:border-[var(--border)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[var(--foreground)] text-[var(--background)] rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              Save Note
-            </button>
+        <form onSubmit={handleCreate} className="border-b border-[var(--border)] bg-[var(--background)]">
+          <div className="px-5 py-4 space-y-3 max-w-4xl mx-auto">
+            <input
+              type="text"
+              placeholder="note title"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full bg-transparent text-[13px] font-mono border-b border-[var(--border)] pb-2 focus:outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--muted-foreground)]"
+            />
+            <textarea
+              placeholder="markdown content..."
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              rows={5}
+              className="w-full bg-transparent text-[13px] font-mono resize-none focus:outline-none placeholder:text-[var(--muted-foreground)]"
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsCreating(false)}>cancel</Button>
+              <Button type="submit" size="sm" disabled={!newTitle.trim() || !newContent.trim()}>save</Button>
+            </div>
           </div>
         </form>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pr-2">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {notes.map((note) => (
-            <div key={note.id} className="group relative p-6 border border-[var(--border)] rounded-lg hover:border-[var(--muted-foreground)] transition-colors bg-[var(--background)] flex flex-col h-64">
-              <h3 className="font-semibold mb-2 pr-6 truncate">{note.title}</h3>
-              <div className="flex-1 overflow-hidden text-sm text-[var(--muted-foreground)] prose prose-sm dark:prose-invert">
-                <ReactMarkdown>{note.content}</ReactMarkdown>
-              </div>
-              <button
-                onClick={() => handleDelete(note.id)}
-                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-2 text-[var(--muted-foreground)] hover:text-red-500 hover:bg-[var(--muted)] rounded-md transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+      {/* Note list */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          {notes.length === 0 && !isCreating && (
+            <div className="text-center py-16 text-[var(--muted-foreground)]">
+              <FileText className="w-8 h-8 opacity-10 mx-auto mb-3" />
+              <p className="text-xs">no notes yet</p>
             </div>
-          ))}
+          )}
+          {notes.map((note) => {
+            const isExpanded = expanded === note.id;
+            return (
+              <div key={note.id}>
+                <button
+                  onClick={() => setExpanded(isExpanded ? null : note.id)}
+                  className="w-full flex items-center gap-3 px-5 py-2.5 border-b border-[var(--border)] hover:bg-[var(--surface)] transition-colors group text-left"
+                >
+                  <FileText className="w-3.5 h-3.5 shrink-0 text-[var(--muted-foreground)]" />
+                  <span className="flex-1 text-[13px] truncate">{note.title}</span>
+                  <span className="text-[10px] text-[var(--muted-foreground)] shrink-0">
+                    {note.content?.length} chars
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(note.id); }}
+                    className="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-red-500 transition-all shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </button>
+                {isExpanded && (
+                  <div className="px-5 py-4 border-b border-[var(--border)] bg-[var(--surface)]">
+                    <div
+                      className="prose prose-sm max-w-none prose-invert text-[13px]"
+                      style={{
+                        "--tw-prose-body": "var(--foreground)",
+                        "--tw-prose-headings": "var(--foreground)",
+                        "--tw-prose-bold": "var(--foreground)",
+                        "--tw-prose-code": "var(--accent)",
+                        "--tw-prose-pre-bg": "var(--background)",
+                        "--tw-prose-pre-code": "var(--foreground)",
+                      } as React.CSSProperties}
+                    >
+                      <ReactMarkdown>{note.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        {notes.length === 0 && !isCreating && (
-          <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
-            No notes found. Create one to get started.
-          </div>
-        )}
       </div>
     </div>
   );
