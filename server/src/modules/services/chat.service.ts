@@ -398,3 +398,146 @@ export async function chat(
 
   return { conversationId, reply };
 }
+
+export async function chatStream(
+  message: string,
+  conversationId: string | undefined,
+  model: string | undefined,
+  provider: ModelProvider | undefined,
+  emit: (event: string, data: any) => void
+): Promise<void> {
+  const client = buildClient(provider);
+  const resolvedProvider = provider ?? defaultProvider();
+  const resolvedModel = model || defaultModel(resolvedProvider);
+  const systemContent = getSystemPrompt();
+  let existingMessages: ChatMessage[] = [];
+
+  if (conversationId) {
+    const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
+    if (conversation) {
+      existingMessages = (conversation.messages as ChatMessage[])?.filter(m => m.role !== "system") ?? [];
+    } else {
+      const conv = await prisma.conversation.create({ data: { messages: [], modelUsed: resolvedModel } });
+      conversationId = conv.id;
+    }
+  } else {
+    const conv = await prisma.conversation.create({ data: { messages: [], modelUsed: resolvedModel } });
+    conversationId = conv.id;
+  }
+
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemContent },
+    ...existingMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+    { role: "user", content: message },
+  ];
+
+  try {
+    const abortController = new AbortController();
+    let dupCount = 0;
+    const response = await client.chat.completions.create({
+      model: resolvedModel,
+      messages,
+      tools,
+      tool_choice: "auto",
+      stream: true,
+    }, { signal: abortController.signal });
+
+    let assistantContent = "";
+    let lastToken = "";
+    const toolCallsMap = new Map<number, { id: string; type: "function"; function: { name: string; arguments: string } }>();
+
+    try {
+    for await (const chunk of response) {
+      const delta = chunk.choices[0]?.delta;
+      if (!delta) continue;
+
+      if (delta.content) {
+        const piece = delta.content;
+        if (piece !== lastToken) {
+          assistantContent += piece;
+          emit("token", { value: piece });
+          lastToken = piece;
+        } else {
+          // provider is emitting each token twice; skip it
+          dupCount++;
+          if (dupCount >= 2) abortController.abort();
+        }
+      }
+
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          if (!toolCallsMap.has(tc.index)) {
+            toolCallsMap.set(tc.index, { id: tc.id || "", type: "function", function: { name: tc.function?.name || "", arguments: "" } });
+          }
+          const existing = toolCallsMap.get(tc.index)!;
+          if (tc.function?.arguments) {
+            existing.function.arguments += tc.function.arguments;
+          }
+        }
+      }
+    }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") throw err;
+    }
+
+    if (toolCallsMap.size > 0) {
+      const toolCalls = Array.from(toolCallsMap.values());
+      const toolResults: ToolResult[] = [];
+
+      for (const tc of toolCalls) {
+        emit("tool", { name: tc.function.name });
+        // cast to FunctionToolCall for executeToolCall
+        const result = await executeToolCall(tc as any);
+        toolResults.push({ role: "tool", tool_call_id: tc.id, content: result });
+      }
+
+      const followUpMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        ...messages,
+        { role: "assistant", content: assistantContent, tool_calls: toolCalls },
+        ...toolResults,
+      ];
+
+      const followUpAbort = new AbortController();
+      const followUp = await client.chat.completions.create({
+        model: resolvedModel,
+        messages: followUpMessages,
+        stream: true,
+      }, { signal: followUpAbort.signal });
+
+      try {
+      for await (const chunk of followUp) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) {
+          const piece = delta.content;
+          if (piece !== lastToken) {
+            assistantContent += piece;
+            emit("token", { value: piece });
+            lastToken = piece;
+          } else {
+            dupCount++;
+            if (dupCount >= 2) followUpAbort.abort();
+          }
+        }
+      }
+      } catch (err: any) {
+        if (err?.name !== "AbortError") throw err;
+      }
+    }
+
+    const allMessages: ChatMessage[] = [
+      ...existingMessages,
+      { role: "user", content: message },
+      { role: "assistant", content: assistantContent },
+    ];
+
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { messages: allMessages },
+    });
+
+    emit("done", { conversationId });
+  } catch (error: any) {
+    console.error("Stream error:", error);
+    emit("error", { error: error.message || "Unknown error" });
+  }
+}

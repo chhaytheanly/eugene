@@ -1,5 +1,6 @@
 import { prisma } from "../../database/prisma";
 import { getEmbedding } from "./embedding/embedding";
+import { setEmbedding } from "./embedding/embeddingDb";
 
 export async function createMemory(content: string) {
   let embedding: number[] | undefined;
@@ -9,12 +10,17 @@ export async function createMemory(content: string) {
     console.warn("No embedding provider available, saving memory without vector");
   }
 
-  return prisma.memory.create({
+  const memory = await prisma.memory.create({
     data: {
       content,
-      ...(embedding ? { embedding } : {}),
     },
   });
+
+  if (embedding) {
+    await setEmbedding("Memory", memory.id, embedding);
+  }
+
+  return memory;
 }
 
 export async function listMemories() {

@@ -1,46 +1,66 @@
 import { useEffect, useState } from "react";
-import { Trash2, Calendar as CalendarIcon, Plus, Clock } from "lucide-react";
+import { Trash2, Calendar as CalendarIcon, Plus, Clock, Loader2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { getEvents, createEvent, deleteEvent } from "../api";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { useAsync } from "../lib/useAsync";
+import { useToast } from "../components/ToastProvider";
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  const { data: events = [], loading, error, execute: loadEvents, setData: setEvents } = useAsync<any[]>(getEvents, []);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
+  const toast = useToast();
 
-  useEffect(() => { loadEvents(); }, []);
-
-  const loadEvents = async () => {
-    try { setEvents(await getEvents()); } catch (err) { console.error(err); }
-  };
+  useEffect(() => { loadEvents(); }, [loadEvents]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newStart || !newEnd) return;
+
+    const tempId = "temp-" + Date.now();
+    const tempEvent = { id: tempId, title: newTitle, start: newStart, end: newEnd, createdAt: new Date().toISOString() };
+
+    setEvents(prev => [...(prev || []), tempEvent]);
+    setNewTitle(""); setNewStart(""); setNewEnd(""); setIsCreating(false);
+
     try {
-      await createEvent({ title: newTitle, start: newStart, end: newEnd });
-      setNewTitle(""); setNewStart(""); setNewEnd(""); setIsCreating(false);
-      loadEvents();
-    } catch (err) { console.error(err); }
+      const created = await createEvent({ title: tempEvent.title, start: tempEvent.start, end: tempEvent.end });
+      setEvents(prev => (prev || []).map(ev => ev.id === tempId ? created : ev));
+    } catch {
+      toast({ message: "Failed to create event" });
+      setEvents(prev => (prev || []).filter(ev => ev.id !== tempId));
+    }
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteEvent(id); loadEvents(); } catch (err) { console.error(err); }
+    const eventToDelete = events.find(ev => ev.id === id);
+    if (!eventToDelete) return;
+
+    setEvents(prev => (prev || []).filter(ev => ev.id !== id));
+    toast({ message: `Deleted event: ${eventToDelete.title}` });
+
+    try {
+      await deleteEvent(id);
+    } catch {
+      toast({ message: "Failed to delete event" });
+      setEvents(prev => [...(prev || []), eventToDelete]);
+    }
   };
 
   const now = new Date();
-  const upcoming = events.filter((e) => new Date(e.end) > now)
+  const upcoming = events
+    .filter((e) => new Date(e.end) > now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  const past = events.filter((e) => new Date(e.end) <= now)
+  const past = events
+    .filter((e) => new Date(e.end) <= now)
     .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+    <div className="flex flex-col h-full bg-[var(--background)] transition-colors duration-300">
       <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface)] shrink-0 flex items-center gap-3">
         <CalendarIcon className="w-4 h-4 text-[var(--accent)]" />
         <div>
@@ -48,14 +68,21 @@ export default function CalendarPage() {
           <span className="text-[10px] text-[var(--muted-foreground)] ml-2">{upcoming.length} upcoming</span>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setIsCreating(!isCreating)} className="ml-auto">
-          <Plus className="w-3 h-3" />
+          <Plus className="w-3 h-3 mr-1" />
           {isCreating ? "close" : "event"}
         </Button>
       </div>
 
-      {/* Create form */}
+      {error && (
+        <div className="px-5 py-2 bg-red-500/10 border-b border-red-500/20 text-red-500 text-xs flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5" />
+          <span>Failed to load events.</span>
+          <button onClick={() => loadEvents()} className="ml-auto underline hover:no-underline">Retry</button>
+        </div>
+      )}
+
       {isCreating && (
-        <form onSubmit={handleCreate} className="border-b border-[var(--border)] bg-[var(--background)]">
+        <form onSubmit={handleCreate} className="border-b border-[var(--border)] bg-[var(--background)] transition-colors">
           <div className="px-5 py-4 space-y-3 max-w-4xl mx-auto">
             <input
               type="text"
@@ -92,10 +119,15 @@ export default function CalendarPage() {
         </form>
       )}
 
-      {/* Event list */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
-          {events.length === 0 && !isCreating && (
+          {loading && events.length === 0 && (
+            <div className="flex items-center justify-center py-16 text-[var(--muted-foreground)]">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          )}
+
+          {!loading && events.length === 0 && !isCreating && !error && (
             <div className="text-center py-16 text-[var(--muted-foreground)]">
               <CalendarIcon className="w-8 h-8 opacity-10 mx-auto mb-3" />
               <p className="text-xs">no events scheduled</p>
