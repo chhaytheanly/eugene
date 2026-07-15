@@ -60,6 +60,51 @@
     --accent-foreground: #0d0514;
   }
 
+  /* Light mode overrides — keep the accent, flip the surface tones */
+  .light.theme-green {
+    --background: #f6f8f6;
+    --foreground: #16181a;
+    --surface: #ffffff;
+    --muted: #eef2ee;
+    --muted-foreground: #5b6b5f;
+    --border: #dde5de;
+    --accent: #16a34a;
+    --accent-foreground: #ffffff;
+  }
+
+  .light.theme-amber {
+    --background: #fbf7ec;
+    --foreground: #2a2410;
+    --surface: #ffffff;
+    --muted: #f3ecd8;
+    --muted-foreground: #8a7330;
+    --border: #e9dcb8;
+    --accent: #d97706;
+    --accent-foreground: #ffffff;
+  }
+
+  .light.theme-blue {
+    --background: #f1f6fc;
+    --foreground: #0d1b2e;
+    --surface: #ffffff;
+    --muted: #e7eef7;
+    --muted-foreground: #4a6184;
+    --border: #d4e0ef;
+    --accent: #2563eb;
+    --accent-foreground: #ffffff;
+  }
+
+  .light.theme-purple {
+    --background: #f7f1fc;
+    --foreground: #1e0d2e;
+    --surface: #ffffff;
+    --muted: #f0e7f7;
+    --muted-foreground: #6b4d86;
+    --border: #e6d8f0;
+    --accent: #9333ea;
+    --accent-foreground: #ffffff;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -97,5 +142,95 @@
   *:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+}
+
+/* ---- Ambient background animation ---- */
+.bg-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--background);
+  transition: background-color 0.3s ease;
+}
+
+.bg-aurora::before,
+.bg-aurora::after {
+  content: "";
+  position: absolute;
+  width: 45vw;
+  height: 45vw;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.18;
+  background: radial-gradient(circle at center, var(--accent), transparent 70%);
+  transition: background 0.3s ease;
+  will-change: transform;
+}
+
+.bg-aurora::before {
+  top: -10vw;
+  left: -5vw;
+  animation: aurora-float-1 22s ease-in-out infinite;
+}
+
+.bg-aurora::after {
+  bottom: -12vw;
+  right: -8vw;
+  opacity: 0.12;
+  animation: aurora-float-2 28s ease-in-out infinite;
+}
+
+.bg-aurora > .aurora-blob {
+  position: absolute;
+  width: 32vw;
+  height: 32vw;
+  border-radius: 9999px;
+  top: 35%;
+  left: 40%;
+  filter: blur(80px);
+  opacity: 0.1;
+  background: radial-gradient(circle at center, var(--accent), transparent 70%);
+  transition: background 0.3s ease;
+  animation: aurora-float-3 26s ease-in-out infinite;
+}
+
+/* Subtle grid overlay for a terminal feel */
+.bg-aurora > .aurora-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.25;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+@keyframes aurora-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(8vw, 6vw) scale(1.1); }
+  66% { transform: translate(3vw, -4vw) scale(0.95); }
+}
+
+@keyframes aurora-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-7vw, -5vw) scale(1.05); }
+  66% { transform: translate(-3vw, 4vw) scale(0.9); }
+}
+
+@keyframes aurora-float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6vw, 5vw) scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-aurora::before,
+  .bg-aurora::after,
+  .bg-aurora > .aurora-blob {
+    animation: none;
   }
 }

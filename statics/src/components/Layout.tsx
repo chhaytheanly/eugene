@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { MessageSquare, CheckSquare, StickyNote, Calendar, BrainCircuit, Terminal, Palette, Menu, X } from "lucide-react";
+import { MessageSquare, CheckSquare, StickyNote, Calendar, BrainCircuit, Terminal, Palette, Menu, X, Sun, Moon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
@@ -25,11 +25,15 @@ const themes = [
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, mode, toggleMode } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-mono transition-colors duration-300 relative">
+      <div className="bg-aurora">
+        <div className="aurora-blob" />
+        <div className="aurora-grid" />
+      </div>
       <CommandPalette />
       {/* Mobile nav toggle */}
       <button 
@@ -80,19 +84,29 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Palette className="w-3 h-3" />
             <span>Theme</span>
           </div>
-          <div className="flex items-center gap-2">
-            {themes.map((t) => (
-              <button
-                key={t.name}
-                onClick={() => setTheme(t.name as any)}
-                className={cn(
-                  "w-4 h-4 rounded-full border border-[var(--border)] transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--surface)]",
-                  theme === t.name ? "ring-2 ring-[var(--foreground)] ring-offset-1 ring-offset-[var(--surface)]" : ""
-                )}
-                style={{ backgroundColor: t.bgClass.replace('bg-[', '').replace(']', '') }}
-                title={t.name}
-              />
-            ))}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {themes.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => setTheme(t.name as any)}
+                  className={cn(
+                    "w-4 h-4 rounded-full border border-[var(--border)] transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--surface)]",
+                    theme === t.name ? "ring-2 ring-[var(--foreground)] ring-offset-1 ring-offset-[var(--surface)]" : ""
+                  )}
+                  style={{ backgroundColor: t.bgClass.replace('bg-[', '').replace(']', '') }}
+                  title={t.name}
+                />
+              ))}
+            </div>
+            <button
+              onClick={toggleMode}
+              className="p-1 rounded-sm border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              title={mode === "dark" ? "Switch to light" : "Switch to dark"}
+              aria-label="Toggle theme mode"
+            >
+              {mode === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
 
