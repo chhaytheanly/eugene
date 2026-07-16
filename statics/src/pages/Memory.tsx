@@ -1,119 +1,161 @@
 import { useEffect, useState } from "react";
-import { Trash2, BrainCircuit, Database, Plus, Loader2, AlertCircle } from "lucide-react";
+import { Trash2, BrainCircuit, Plus, Loader2, AlertCircle, Tag, Search } from "lucide-react";
 import { getMemories, createMemory, deleteMemory } from "../api";
-import { format } from "date-fns";
-import { Button } from "../components/ui/button";
 import { useAsync } from "../lib/useAsync";
 import { useToast } from "../components/ToastProvider";
+import { format } from "date-fns";
+import { Modal } from "../components/ui/Modal";
 
 export default function Memory() {
   const { data: memories = [], loading, error, execute: loadMemories, setData: setMemories } = useAsync<any[]>(getMemories, []);
+  const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [newContent, setNewContent] = useState("");
   const toast = useToast();
 
   useEffect(() => { loadMemories(); }, [loadMemories]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async () => {
     if (!newContent.trim()) return;
-
-    const tempId = "temp-" + Date.now();
-    const tempMem = { id: tempId, content: newContent, createdAt: new Date().toISOString() };
-
-    setMemories(prev => [tempMem, ...(prev || [])]);
-    setNewContent(""); setIsCreating(false);
-
+    const temp = { id: "temp-" + Date.now(), content: newContent, createdAt: new Date().toISOString() };
+    setMemories(prev => [temp, ...(prev || [])]);
+    setIsCreating(false); setNewContent("");
     try {
-      const created = await createMemory({ content: tempMem.content });
-      setMemories(prev => (prev || []).map(m => m.id === tempId ? created : m));
+      const created = await createMemory({ content: temp.content });
+      setMemories(prev => (prev || []).map(m => m.id === temp.id ? created : m));
     } catch {
       toast({ message: "Failed to store memory" });
-      setMemories(prev => (prev || []).filter(m => m.id !== tempId));
+      setMemories(prev => (prev || []).filter(m => m.id !== temp.id));
     }
   };
 
   const handleDelete = async (id: string) => {
     const memToDelete = memories.find(m => m.id === id);
     if (!memToDelete) return;
-
     setMemories(prev => (prev || []).filter(m => m.id !== id));
     toast({ message: "Memory deleted" });
-
-    try {
-      await deleteMemory(id);
-    } catch {
+    try { await deleteMemory(id); } catch {
       toast({ message: "Failed to delete memory" });
-      setMemories(prev => [...(prev || []), memToDelete].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      setMemories(prev => [memToDelete, ...(prev || [])]);
     }
   };
 
+  const filtered = memories.filter(m =>
+    m.content.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="flex flex-col h-full bg-[var(--background)] transition-colors duration-300">
-      <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface)] shrink-0 flex items-center gap-3">
-        <Database className="w-4 h-4 text-[var(--accent)]" />
-        <div>
-          <span className="text-xs font-semibold">memory</span>
-          <span className="text-[10px] text-[var(--muted-foreground)] ml-2">{memories.length} records</span>
+    <div className="flex flex-col h-full" style={{ background: "transparent" }}>
+      <header className="flex items-center justify-between px-6 py-3 shrink-0 glass-terminal" style={{ borderBottom: "1px solid var(--border)", minHeight: 52 }}>
+        <div className="flex items-center gap-3">
+          <BrainCircuit className="w-4 h-4" style={{ color: "var(--secondary)" }} />
+          <div>
+            <span className="text-sm font-semibold text-[var(--fg)]">Memory</span>
+            <span className="text-xs text-[var(--fg-muted)] ml-2">{memories.length} stored</span>
+          </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setIsCreating(!isCreating)} className="ml-auto">
-          <Plus className="w-3 h-3 mr-1" />
-          {isCreating ? "close" : "new"}
-        </Button>
-      </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-[var(--surface-elevated)] border border-[var(--border)]">
+            <Search className="w-3.5 h-3.5 text-[var(--fg-muted)]" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search memories..."
+              className="bg-transparent text-xs text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:outline-none w-40"
+            />
+          </div>
+          <button
+            onClick={() => setIsCreating(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors btn-terminal primary"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Store Memory
+          </button>
+        </div>
+      </header>
 
       {error && (
-        <div className="px-5 py-2 bg-red-500/10 border-b border-red-500/20 text-red-500 text-xs flex items-center gap-2">
+        <div className="px-6 py-2 flex items-center gap-2 text-xs" style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
           <AlertCircle className="w-3.5 h-3.5" />
           <span>Failed to load memories.</span>
-          <button onClick={() => loadMemories()} className="ml-auto underline hover:no-underline">Retry</button>
+          <button onClick={() => loadMemories()} className="ml-auto underline">Retry</button>
         </div>
       )}
 
-      {isCreating && (
-        <form onSubmit={handleCreate} className="border-b border-[var(--border)] bg-[var(--background)] transition-colors">
-          <div className="px-5 py-4 space-y-3 max-w-4xl mx-auto flex items-start gap-3">
-            <textarea
-              placeholder="What should eugene remember?..."
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              rows={2}
-              className="flex-1 bg-transparent text-[13px] font-mono resize-none focus:outline-none placeholder:text-[var(--muted-foreground)]"
-            />
-            <Button type="submit" size="sm" disabled={!newContent.trim()}>save</Button>
-          </div>
-        </form>
-      )}
+      <Modal
+        open={isCreating}
+        onClose={() => setIsCreating(false)}
+        title="Store Memory"
+        description="What should Eugene remember?"
+        footer={
+          <>
+            <button type="button" onClick={() => setIsCreating(false)} className="px-3 py-1.5 rounded text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors btn-terminal outline">Cancel</button>
+            <button type="button" onClick={handleCreate} className="px-4 py-1.5 rounded text-xs font-semibold transition-all btn-terminal primary">Store Memory</button>
+          </>
+        }
+      >
+        <textarea
+          autoFocus
+          value={newContent}
+          onChange={e => setNewContent(e.target.value)}
+          placeholder="What should Eugene remember?..."
+          rows={4}
+          className="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:outline-none focus:border-[var(--accent)]"
+        />
+      </Modal>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
-          {loading && memories.length === 0 && (
-            <div className="flex items-center justify-center py-16 text-[var(--muted-foreground)]">
-              <Loader2 className="w-6 h-6 animate-spin" />
-            </div>
-          )}
-          {!loading && memories.length === 0 && !error && !isCreating && (
-            <div className="text-center py-16 text-[var(--muted-foreground)]">
-              <Database className="w-8 h-8 opacity-10 mx-auto mb-3" />
-              <p className="text-xs">no memories stored yet</p>
-              <p className="text-[10px] mt-1 opacity-60">eugene learns facts during conversation</p>
-            </div>
-          )}
-          {memories.map((mem) => (
-            <div key={mem.id} className="flex items-start gap-3 px-5 py-3 border-b border-[var(--border)] hover:bg-[var(--surface)] transition-colors group text-[13px]">
-              <BrainCircuit className="w-4 h-4 mt-0.5 shrink-0 text-[var(--muted-foreground)]" />
-              <div className="flex-1 min-w-0">
-                <p className="leading-relaxed whitespace-pre-wrap">{mem.content}</p>
-                <p className="text-[10px] text-[var(--muted-foreground)] mt-1">
-                  stored {format(new Date(mem.createdAt), "MMM d, yyyy")}
-                </p>
+      {/* Stats bar */}
+      <div className="px-6 py-2 shrink-0" style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div className="grid grid-cols-2 gap-4 max-w-2xl">
+          <div className="p-2 rounded bg-[var(--surface-elevated)] border border-[var(--border)]">
+            <p className="text-[10px] text-[var(--fg-subtle)] uppercase tracking-wider">Memories</p>
+            <p className="text-lg font-bold text-[var(--accent)] font-mono">{memories.length}</p>
+          </div>
+          <div className="p-2 rounded bg-[var(--surface-elevated)] border border-[var(--border)]">
+            <p className="text-[10px] text-[var(--fg-subtle)] uppercase tracking-wider">Embeddings</p>
+            <p className="text-lg font-bold text-[var(--secondary)] font-mono">{memories.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Memories list */}
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        {loading && memories.length === 0 && (
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--fg-muted)]" />
+          </div>
+        )}
+        {!loading && filtered.length === 0 && !isCreating && !error && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <BrainCircuit className="w-10 h-10 mb-4 opacity-10" style={{ color: "var(--secondary)" }} />
+            <p className="text-sm text-[var(--fg-muted)]">No memories stored</p>
+            <p className="text-[10px] text-[var(--fg-subtle)] mt-1">Eugene learns during conversations</p>
+          </div>
+        )}
+        <div className="space-y-2">
+          {filtered.map(mem => (
+            <div key={mem.id} className="rounded-lg hover:bg-[var(--surface-elevated)] transition-colors group" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+              <div className="px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <BrainCircuit className="w-3.5 h-3.5 text-[var(--secondary)] shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-[var(--fg)] leading-relaxed">{mem.content}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Tag className="w-2.5 h-2.5 text-[var(--fg-subtle)]" />
+                      <span className="text-[10px] text-[var(--fg-subtle)] font-mono">
+                        {format(new Date(mem.createdAt), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDelete(mem.id); }}
+                    className="p-1.5 rounded text-[var(--fg-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface-elevated)] transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => handleDelete(mem.id)}
-                className="opacity-0 group-hover:opacity-100 mt-0.5 text-[var(--muted-foreground)] hover:text-red-500 transition-all shrink-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
             </div>
           ))}
         </div>

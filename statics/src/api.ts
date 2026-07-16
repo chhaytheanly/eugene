@@ -31,6 +31,7 @@ export const streamChat = async (
   model: string | undefined,
   provider: string | undefined,
   handlers: {
+    signal?: AbortSignal;
     onToken: (token: string) => void;
     onTool?: (name: string) => void;
     onDone: (convId: string) => void;
@@ -42,6 +43,7 @@ export const streamChat = async (
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, conversationId, model, provider }),
+      signal: handlers.signal,
     });
 
     if (!res.ok) {
@@ -112,6 +114,7 @@ export const deleteMemory = async (id: string) => await api.delete(`/memory/${id
 // Calendar
 export const getEvents = async () => (await api.get('/calendar')).data;
 export const createEvent = async (payload: { title: string; start: string; end: string; notes?: string; allDay?: boolean }) => (await api.post('/calendar', payload)).data;
+export const updateEvent = async (id: string, payload: { title?: string; start?: string; end?: string; notes?: string; allDay?: boolean }) => (await api.put(`/calendar/${id}`, payload)).data;
 export const deleteEvent = async (id: string) => await api.delete(`/calendar/${id}`);
 
 export default api;
