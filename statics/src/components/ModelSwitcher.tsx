@@ -7,6 +7,20 @@ const STORAGE_KEY = "eugene:selectedModel";
 
 type Selected = { id: string; provider: string; name: string };
 
+const providerLabel: Record<string, string> = {
+  openai: "OpenAI",
+  openrouter: "OpenRouter",
+  opencode: "OpenCode Zen",
+  gemini: "Gemini",
+};
+
+const providerColor: Record<string, string> = {
+  openai: "#10B981",
+  openrouter: "#8B5CF6",
+  opencode: "#00E5FF",
+  gemini: "#3B82F6",
+};
+
 export default function ModelSwitcher() {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [selected, setSelected] = useState<Selected | null>(null);
@@ -59,73 +73,131 @@ export default function ModelSwitcher() {
     return acc;
   }, {});
 
-  const providerLabel: Record<string, string> = {
-    openai: "OpenAI",
-    openrouter: "OpenRouter",
-    opencode: "OpenCode Zen",
-    gemini: "Gemini",
-  };
-
   if (models.length === 0) return null;
 
+  const selectedColor = selected ? (providerColor[selected.provider] ?? "var(--accent)") : "var(--muted-foreground)";
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative w-full max-w-[260px]" ref={ref}>
+      {/* Trigger button */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 w-full text-[10px] px-2 py-1 rounded-sm border border-[var(--border)] bg-[var(--muted)] hover:bg-[var(--muted)]/70 transition-colors"
+        className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg transition-all text-sm"
+        style={{
+          background: open ? "var(--surface-elevated)" : "var(--surface)",
+          border: `1px solid ${open ? "color-mix(in srgb, var(--accent) 50%, transparent)" : "var(--border)"}`,
+          boxShadow: open ? "0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent)" : "none",
+        }}
       >
-        <Cpu className="w-3 h-3 shrink-0 text-[var(--accent)]" />
-        <span className="truncate text-[10px]">{selected?.name ?? "default model"}</span>
-        <ChevronDown className="w-3 h-3 ml-auto shrink-0 text-[var(--muted-foreground)]" />
+        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: selectedColor, boxShadow: `0 0 6px ${selectedColor}80` }} />
+        <span className="flex-1 truncate text-left text-sm text-[var(--foreground)]">
+          {selected?.name ?? "Select model"}
+        </span>
+        <ChevronDown
+          className="w-3.5 h-3.5 shrink-0 text-[var(--muted-foreground)] transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
+        />
       </button>
 
+      {/* Dropdown */}
       {open && (
-        <div className="absolute left-0 bottom-full mb-2 w-64 max-h-72 overflow-y-auto border border-[var(--border)] bg-[var(--surface)] shadow-xl z-50 rounded-sm">
-          <div className="p-1.5 sticky top-0 bg-[var(--surface)] border-b border-[var(--border)]">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-[var(--background)]">
-              <Search className="w-3 h-3 text-[var(--muted-foreground)] shrink-0" />
+        <div
+          className="absolute top-full mt-2 left-0 right-0 z-[200] rounded-xl overflow-hidden"
+          style={{
+            background: "rgba(13,18,28,0.97)",
+            border: "1px solid var(--border)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px color-mix(in srgb, var(--accent) 5%, transparent)",
+            backdropFilter: "blur(16px)",
+            minWidth: 260,
+          }}
+        >
+          {/* Search */}
+          <div className="p-2" style={{ borderBottom: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: "var(--muted)" }}>
+              <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" />
               <input
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="search models..."
-                className="w-full bg-transparent text-[11px] font-mono focus:outline-none placeholder:text-[var(--muted-foreground)]"
+                placeholder="Search models..."
+                className="w-full bg-transparent text-xs text-[var(--foreground)] focus:outline-none placeholder:text-[var(--muted-foreground)]"
               />
             </div>
           </div>
-          {filtered.length === 0 && (
-            <div className="px-3 py-4 text-center text-[10px] text-[var(--muted-foreground)]">
-              no models match "{query}"
-            </div>
-          )}
-          {Object.entries(grouped).map(([provider, list]) => (
-            <div key={provider}>
-              <div className="px-3 py-1 text-[9px] uppercase tracking-wider text-[var(--muted-foreground)] font-semibold">
-                {providerLabel[provider] ?? provider}
+
+          {/* Results */}
+          <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
+            {filtered.length === 0 && (
+              <div className="px-4 py-6 text-center text-xs text-[var(--muted-foreground)]">
+                No models match "{query}"
               </div>
-              {list.map((m) => {
-                const active = selected?.id === m.id && selected?.provider === m.provider;
-                return (
-                  <button
-                    key={`${m.provider}:${m.id}`}
-                    type="button"
-                    onClick={() => choose(m)}
-                    className={cn(
-                      "w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left hover:bg-[var(--muted)] transition-colors",
-                      active && "bg-[var(--accent)]/5"
-                    )}
-                  >
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] truncate">{m.name}</span>
-                      <span className="text-[9px] text-[var(--muted-foreground)] truncate">{m.id}</span>
-                    </div>
-                    {active && <Check className="w-3 h-3 shrink-0 text-[var(--accent)]" />}
-                  </button>
-                );
-              })}
+            )}
+            {Object.entries(grouped).map(([provider, list]) => (
+              <div key={provider}>
+                {/* Provider header */}
+                <div
+                  className="flex items-center gap-2 px-3 py-2"
+                  style={{ borderBottom: "1px solid rgba(42,52,65,0.5)" }}
+                >
+                  <div
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: providerColor[provider] ?? "var(--muted-foreground)" }}
+                  />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    {providerLabel[provider] ?? provider}
+                  </span>
+                  <span className="text-[10px] text-[var(--muted-foreground)] opacity-50 ml-auto">{list.length}</span>
+                </div>
+
+                {list.map((m) => {
+                  const isActive = selected?.id === m.id && selected?.provider === m.provider;
+                  return (
+                    <button
+                      key={`${m.provider}:${m.id}`}
+                      type="button"
+                      onClick={() => choose(m)}
+                      className={cn(
+                        "w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors",
+                        isActive ? "text-[var(--accent)]" : "hover:bg-[var(--muted)]"
+                      )}
+                      style={{
+                        background: isActive ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
+                      }}
+                    >
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className={cn("text-xs font-medium truncate", isActive ? "text-[var(--accent)]" : "text-[var(--foreground)]")}>
+                          {m.name}
+                        </span>
+                        <span className="text-[10px] text-[var(--muted-foreground)] truncate mt-0.5 font-mono">
+                          {m.id}
+                        </span>
+                      </div>
+                      {isActive && (
+                        <Check className="w-3.5 h-3.5 shrink-0 text-[var(--accent)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div
+            className="flex items-center justify-between px-3 py-2 text-[10px] text-[var(--muted-foreground)]"
+            style={{ borderTop: "1px solid var(--border)", background: "rgba(0,0,0,0.2)" }}
+          >
+            <div className="flex items-center gap-1.5">
+              <Cpu className="w-3 h-3" />
+              <span>{models.length} models available</span>
             </div>
-          ))}
+            {selected && (
+              <span className="truncate max-w-[120px]" style={{ color: selectedColor }}>
+                {selected.provider}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

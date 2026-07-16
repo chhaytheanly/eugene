@@ -25,14 +25,7 @@ const OPENAI_MODELS: ModelInfo[] = [
 
 const GEMINI_MODELS: ModelInfo[] = [
   { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "gemini", contextLength: 1_048_576 },
-  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "gemini", contextLength: 1_048_576 },
-  { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", provider: "gemini" },
-  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" },
-  { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash Lite", provider: "gemini" },
-  { id: "gemini-2.0-pro", name: "Gemini 2.0 Pro", provider: "gemini" },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "gemini" },
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "gemini" },
-  { id: "gemini-1.5-flash-8b", name: "Gemini 1.5 Flash 8B", provider: "gemini" },
+  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "gemini" },
 ];
 
 const OPENROUTER_FALLBACK_MODELS: ModelInfo[] = [
@@ -50,15 +43,15 @@ const OPENROUTER_FALLBACK_MODELS: ModelInfo[] = [
 ];
 
 const OPENCODE_FALLBACK_MODELS: ModelInfo[] = [
-  { id: "opencode/big-pickle", name: "Big Pickle (free)", provider: "opencode" },
-  { id: "opencode/gpt-5.1", name: "GPT-5.1", provider: "opencode" },
-  { id: "opencode/claude-sonnet-4-5", name: "Claude Sonnet 4.5", provider: "opencode" },
+  { id: "big-pickle", name: "Big Pickle (free)", provider: "opencode" },
+  { id: "gpt-5.1", name: "GPT-5.1", provider: "opencode" },
+  { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", provider: "opencode" },
 ];
 
-const GEMINI_BASE_URL = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai/";
+const GEMINI_BASE_URL = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai";
 
 function normalizeOpenCodeId(id: string): string {
-  return id.startsWith("opencode/") ? id : `opencode/${id}`;
+  return id;
 }
 
 async function fetchOpenCodeModels(): Promise<ModelInfo[]> {
@@ -147,14 +140,13 @@ export function buildClient(provider?: ModelProvider): OpenAI {
   if (provider === "gemini" && process.env.GEMINI_API_KEY) {
     return new OpenAI({
       apiKey: process.env.GEMINI_API_KEY,
-      baseURL: GEMINI_BASE_URL,
+      baseURL: GEMINI_BASE_URL.replace(/\/+$/, ""),
     });
   }
   if (provider === "openai" && process.env.OPENAI_API_KEY) {
     return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
 
-  // Fall back to whichever key is configured.
   if (process.env.OPENAI_API_KEY) {
     return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
@@ -167,7 +159,7 @@ export function buildClient(provider?: ModelProvider): OpenAI {
   if (process.env.GEMINI_API_KEY) {
     return new OpenAI({
       apiKey: process.env.GEMINI_API_KEY,
-      baseURL: GEMINI_BASE_URL,
+      baseURL: GEMINI_BASE_URL.replace(/\/+$/, ""),
     });
   }
   if (process.env.OPENCODE_API_KEY) {
@@ -190,6 +182,6 @@ export function defaultProvider(): ModelProvider {
 export function defaultModel(provider: ModelProvider): string {
   if (provider === "openai") return process.env.OPENAI_MODEL || "gpt-4o";
   if (provider === "openrouter") return process.env.OPENROUTER_MODEL || "openai/gpt-4o";
-  if (provider === "gemini") return process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  return process.env.OPENCODE_MODEL || "opencode/big-pickle";
+  if (provider === "gemini") return process.env.GEMINI_MODEL || "gemini-2.5-pro";
+  return process.env.OPENCODE_MODEL?.replace(/^opencode\//, "") || "big-pickle";
 }

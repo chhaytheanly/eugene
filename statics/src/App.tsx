@@ -20,6 +20,7 @@ function App() {
               <Route path="/notes" element={<Notes />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/memory" element={<Memory />} />
+              <Route path="/settings" element={<Chat />} />
             </Routes>
           </Layout>
         </BrowserRouter>

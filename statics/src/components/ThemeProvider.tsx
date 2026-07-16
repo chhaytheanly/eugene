@@ -1,46 +1,51 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "green" | "amber" | "blue" | "purple";
-type Mode = "dark" | "light";
+export type Theme = "green" | "amber" | "blue" | "purple";
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  mode: Mode;
-  toggleMode: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "green",
+  setTheme: () => {},
+});
+
+const THEME_KEY = "eugene:theme";
+
+const themeLabels: Record<Theme, string> = {
+  green: "Emerald",
+  amber: "Amber",
+  blue: "Sapphire",
+  purple: "Amethyst",
+};
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem("eugene:theme");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const saved = localStorage.getItem(THEME_KEY);
     return (saved as Theme) || "green";
-  });
-  const [mode, setMode] = useState<Mode>(() => {
-    const saved = localStorage.getItem("eugene:mode");
-    return (saved as Mode) || "dark";
   });
 
   useEffect(() => {
-    localStorage.setItem("eugene:theme", theme);
-    localStorage.setItem("eugene:mode", mode);
-    document.documentElement.className = `theme-${theme} ${mode}`;
-  }, [theme, mode]);
+    localStorage.setItem(THEME_KEY, theme);
+    document.documentElement.className = `theme-${theme}`;
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
-  const toggleMode = () => setMode((m) => (m === "dark" ? "light" : "dark"));
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, mode, toggleMode }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  return useContext(ThemeContext);
 }
+
+export { themeLabels };

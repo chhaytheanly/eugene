@@ -1,138 +1,186 @@
-import { Link, useLocation } from "react-router-dom";
-import { MessageSquare, CheckSquare, StickyNote, Calendar, BrainCircuit, Terminal, Palette, Menu, X, Sun, Moon } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  MessageSquare, CheckSquare, StickyNote, Calendar, BrainCircuit, Settings,
+  MessageSquareDot, CheckSquare2, BookOpen, CalendarDays, Brain, SettingsIcon,
+  PanelLeftClose, PanelLeftOpen
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
-import ModelSwitcher from "./ModelSwitcher";
-import { useTheme } from "./ThemeProvider";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { CommandPalette } from "./CommandPalette";
+import { StatusBar } from "./StatusBar";
+import { ChatSidebar } from "./sidebar/ChatSidebar";
+import { TasksSidebar } from "./sidebar/TasksSidebar";
+import { NotesSidebar } from "./sidebar/NotesSidebar";
+import { CalendarSidebar } from "./sidebar/CalendarSidebar";
+import { MemorySidebar } from "./sidebar/MemorySidebar";
+import { SettingsSidebar } from "./sidebar/SettingsSidebar";
+import { motion, AnimatePresence } from "framer-motion";
 
-const navItems = [
-  { name: "chat", path: "/", icon: MessageSquare },
-  { name: "tasks", path: "/tasks", icon: CheckSquare },
-  { name: "notes", path: "/notes", icon: StickyNote },
-  { name: "calendar", path: "/calendar", icon: Calendar },
-  { name: "memory", path: "/memory", icon: BrainCircuit },
+type ActivitySection = "chat" | "tasks" | "notes" | "calendar" | "memory" | "settings";
+
+interface NavItem {
+  id: ActivitySection;
+  path: string;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  FilledIcon: React.ComponentType<{ className?: string }>;
+  tooltip: string;
+}
+
+const navItems: NavItem[] = [
+  { id: "chat", path: "/", label: "Chat", Icon: MessageSquare, FilledIcon: MessageSquareDot, tooltip: "Chat" },
+  { id: "tasks", path: "/tasks", label: "Tasks", Icon: CheckSquare, FilledIcon: CheckSquare2, tooltip: "Tasks" },
+  { id: "notes", path: "/notes", label: "Notes", Icon: StickyNote, FilledIcon: BookOpen, tooltip: "Notes" },
+  { id: "calendar", path: "/calendar", label: "Calendar", Icon: Calendar, FilledIcon: CalendarDays, tooltip: "Calendar" },
+  { id: "memory", path: "/memory", label: "Memory", Icon: BrainCircuit, FilledIcon: Brain, tooltip: "Memory" },
+  { id: "settings", path: "/settings", label: "Settings", Icon: Settings, FilledIcon: SettingsIcon, tooltip: "Settings" },
 ];
 
-const themes = [
-  { name: "green", bgClass: "bg-[#22c55e]" },
-  { name: "amber", bgClass: "bg-[#fbbf24]" },
-  { name: "blue", bgClass: "bg-[#3b82f6]" },
-  { name: "purple", bgClass: "bg-[#a855f7]" },
-];
+function getSidebarContent(section: ActivitySection, onNewChat: () => void, navigate: ReturnType<typeof useNavigate>) {
+  switch (section) {
+    case "chat": return <ChatSidebar onNewChat={onNewChat} />;
+    case "tasks": return <TasksSidebar />;
+    case "notes": return <NotesSidebar onSelectNote={() => navigate("/notes")} />;
+    case "calendar": return <CalendarSidebar />;
+    case "memory": return <MemorySidebar />;
+    case "settings": return <SettingsSidebar />;
+  }
+}
+
+function pathToSection(path: string): ActivitySection {
+  if (path === "/") return "chat";
+  if (path.startsWith("/tasks")) return "tasks";
+  if (path.startsWith("/notes")) return "notes";
+  if (path.startsWith("/calendar")) return "calendar";
+  if (path.startsWith("/memory")) return "memory";
+  if (path.startsWith("/settings")) return "settings";
+  return "chat";
+}
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { theme, setTheme, mode, toggleMode } = useTheme();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState<ActivitySection>(pathToSection(location.pathname));
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const handleNavClick = (item: NavItem) => {
+    if (activeSection === item.id && sidebarOpen) {
+      setSidebarOpen(false);
+    } else {
+      setActiveSection(item.id);
+      setSidebarOpen(true);
+      // Only navigate for non-settings items (settings is in sidebar only)
+      if (item.id !== "settings") {
+        navigate(item.path);
+      }
+    }
+  };
+
+  const handleNewChat = () => {
+    navigate("/");
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-mono transition-colors duration-300 relative">
-      <div className="bg-aurora">
-        <div className="aurora-blob" />
-        <div className="aurora-grid" />
-      </div>
+    <div
+      className="flex flex-col overflow-hidden"
+      style={{ height: "100dvh", background: "var(--background)" }}
+    >
+      {/* Ambient background */}
+      <div className="bg-ambient" />
+      <div className="bg-grid" />
+
       <CommandPalette />
-      {/* Mobile nav toggle */}
-      <button 
-        className="md:hidden absolute top-3 right-4 z-50 p-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-md text-[var(--muted-foreground)]"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      >
-        {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-      </button>
 
-      <aside className={cn(
-        "absolute md:relative z-40 w-52 h-full border-r border-[var(--border)] flex flex-col bg-[var(--surface)] shrink-0 transition-all duration-300",
-        mobileMenuOpen ? "left-0" : "-left-52 md:left-0"
-      )}>
-        <div className="px-4 pt-5 pb-4 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-[var(--accent)] transition-colors duration-300" />
-            <span className="text-sm font-semibold tracking-tight">eugene</span>
-            <span className="text-[10px] text-[var(--muted-foreground)] border border-[var(--border)] rounded px-1 leading-tight">v0</span>
+      {/* Main grid: activity bar + sidebar + main */}
+      <div className="flex flex-1 min-h-0">
+        {/* ===================== ACTIVITY BAR ===================== */}
+        <div
+          className="flex flex-col items-center py-4 gap-2 shrink-0 border-r border-[var(--border)] relative z-20"
+          style={{ width: 60, background: "var(--sidebar-bg)" }}
+        >
+          {/* Logo */}
+          <div className="activity-bar-logo">
+            <span className="text-[10px] font-bold font-mono" style={{ color: "var(--accent)" }}>E</span>
           </div>
-          <p className="text-[10px] text-[var(--muted-foreground)] mt-1.5 ml-6">personal ai assistant</p>
+
+          {/* Nav items */}
+          <div className="flex flex-col items-center gap-1 flex-1">
+            {navItems.map(item => {
+              const isActive = activeSection === item.id && sidebarOpen;
+              const Icon = isActive ? item.FilledIcon : item.Icon;
+              return (
+                <div key={item.id} className="relative group">
+                  <button
+                    onClick={() => handleNavClick(item)}
+                    className={cn("activity-bar-item", isActive && "active")}
+                    title={item.tooltip}
+                    aria-label={item.tooltip}
+                  >
+                    <Icon className="w-[18px] h-[18px]" />
+                  </button>
+                  {/* Tooltip */}
+                  <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                    <div className="px-2 py-1 rounded-md text-[11px] font-medium whitespace-nowrap"
+                      style={{ background: "var(--surface-elevated)", border: "1px solid var(--border)", color: "var(--foreground)", boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}>
+                      {item.tooltip}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+            title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+          >
+            {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+          </button>
         </div>
 
-        <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-1.5 text-xs rounded-sm transition-all duration-200",
-                  isActive
-                    ? "bg-[var(--accent)]/10 text-[var(--accent)] border-l-2 border-[var(--accent)]"
-                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] border-l-2 border-transparent"
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="px-4 py-3 border-t border-[var(--border)]">
-          <div className="flex items-center gap-2 mb-2 text-[10px] text-[var(--muted-foreground)] uppercase font-semibold tracking-wider">
-            <Palette className="w-3 h-3" />
-            <span>Theme</span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              {themes.map((t) => (
-                <button
-                  key={t.name}
-                  onClick={() => setTheme(t.name as any)}
-                  className={cn(
-                    "w-4 h-4 rounded-full border border-[var(--border)] transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--surface)]",
-                    theme === t.name ? "ring-2 ring-[var(--foreground)] ring-offset-1 ring-offset-[var(--surface)]" : ""
-                  )}
-                  style={{ backgroundColor: t.bgClass.replace('bg-[', '').replace(']', '') }}
-                  title={t.name}
-                />
-              ))}
-            </div>
-            <button
-              onClick={toggleMode}
-              className="p-1 rounded-sm border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              title={mode === "dark" ? "Switch to light" : "Switch to dark"}
-              aria-label="Toggle theme mode"
+        {/* ===================== SIDEBAR ===================== */}
+        <div
+          className={cn("sidebar-panel shrink-0 border-r border-[var(--border)] overflow-hidden relative z-10", sidebarOpen ? "expanded" : "collapsed")}
+          style={{ background: "var(--sidebar-bg)" }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="h-full w-[280px]"
             >
-              {mode === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+              {/* Sidebar header */}
+              <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  {navItems.find(i => i.id === activeSection)?.label}
+                </span>
+              </div>
+
+              {/* Sidebar content */}
+              <div className="flex-1 overflow-hidden" style={{ height: "calc(100% - 44px)" }}>
+                {getSidebarContent(activeSection, handleNewChat, navigate)}
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        <div className="px-3 py-3 border-t border-[var(--border)] space-y-2">
-          <ModelSwitcher />
-          <div className="flex items-center gap-2 px-1 mt-2">
-            <div className="w-5 h-5 rounded-sm bg-[var(--muted)] flex items-center justify-center border border-[var(--border)]">
-              <span className="text-[9px] font-bold text-[var(--muted-foreground)]">~</span>
-            </div>
-            <span className="text-[10px] text-[var(--muted-foreground)]">user@eugene</span>
-          </div>
-        </div>
-      </aside>
+        {/* ===================== MAIN WORKSPACE ===================== */}
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </main>
+      </div>
 
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[var(--background)] transition-colors duration-300">
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
-      </main>
+      {/* ===================== STATUS BAR ===================== */}
+      <StatusBar />
     </div>
   );
 }
