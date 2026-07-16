@@ -41,7 +41,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "searchNote",
-      description: "Search notes semantically by similarity to a query",
+      description: "Retrieve previously stored facts, user preferences, or important information from long‑term memory. Use this when the user asks about something they told you before, or when you need background information that might have been saved earlier.",
       parameters: {
         type: "object",
         properties: {

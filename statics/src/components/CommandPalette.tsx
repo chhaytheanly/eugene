@@ -3,8 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Command, MessageSquare, CheckSquare, StickyNote, Calendar, BrainCircuit,
-  Settings, Palette, PanelLeft, Search, ArrowRight
+  Settings, Search, ArrowRight, Terminal, Palette, Sparkles
 } from "lucide-react";
+import { cn } from "../lib/utils";
+import { useTheme, type Theme } from "./ThemeProvider";
+
+const THEME_ORDER: Theme[] = ["green", "amber", "blue", "purple"];
 
 interface Action {
   id: string;
@@ -23,6 +27,12 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { theme, setTheme, toggleMode, mode } = useTheme();
+
+  const cycleTheme = () => {
+    const idx = THEME_ORDER.indexOf(theme);
+    setTheme(THEME_ORDER[(idx + 1) % THEME_ORDER.length]);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,34 +56,39 @@ export function CommandPalette() {
 
   const actions: Action[] = [
     {
-      id: "nav-chat", label: "Open Chat", description: "Go to the chat interface",
-      icon: MessageSquare, category: "Navigation", shortcut: "1",
+      id: "nav-chat", label: "Open Chat", description: "Switch to chat interface",
+      icon: MessageSquare, category: "Navigation", shortcut: "Ctrl+1",
       onSelect: () => navigate("/"),
     },
     {
-      id: "nav-tasks", label: "Open Tasks", description: "View your task list",
-      icon: CheckSquare, category: "Navigation", shortcut: "2",
+      id: "nav-tasks", label: "Open Tasks", description: "View task list",
+      icon: CheckSquare, category: "Navigation", shortcut: "Ctrl+2",
       onSelect: () => navigate("/tasks"),
     },
     {
-      id: "nav-notes", label: "Open Notes", description: "Browse your notes",
-      icon: StickyNote, category: "Navigation", shortcut: "3",
+      id: "nav-notes", label: "Open Notes", description: "Browse notes",
+      icon: StickyNote, category: "Navigation", shortcut: "Ctrl+3",
       onSelect: () => navigate("/notes"),
     },
     {
-      id: "nav-cal", label: "Open Calendar", description: "View upcoming events",
-      icon: Calendar, category: "Navigation", shortcut: "4",
+      id: "nav-cal", label: "Open Calendar", description: "View calendar",
+      icon: Calendar, category: "Navigation", shortcut: "Ctrl+4",
       onSelect: () => navigate("/calendar"),
     },
     {
       id: "nav-mem", label: "Open Memory", description: "Explore semantic memory",
-      icon: BrainCircuit, category: "Navigation", shortcut: "5",
+      icon: BrainCircuit, category: "Navigation", shortcut: "Ctrl+5",
       onSelect: () => navigate("/memory"),
     },
     {
       id: "nav-settings", label: "Open Settings", description: "Developer preferences",
-      icon: Settings, category: "Navigation",
+      icon: Settings, category: "Navigation", shortcut: "Ctrl+6",
       onSelect: () => navigate("/settings"),
+    },
+    {
+      id: "new-chat", label: "New Conversation", description: "Start fresh chat",
+      icon: Sparkles, category: "Chat",
+      onSelect: () => navigate("/"),
     },
     {
       id: "search-notes", label: "Search Notes", description: "Find notes by content",
@@ -86,19 +101,20 @@ export function CommandPalette() {
       onSelect: () => { navigate("/memory"); },
     },
     {
-      id: "new-task", label: "New Task", description: "Create a new task",
-      icon: CheckSquare, category: "Create",
-      onSelect: () => navigate("/tasks"),
-    },
-    {
       id: "toggle-sidebar", label: "Toggle Sidebar", description: "Show or hide sidebar",
-      icon: PanelLeft, category: "View",
-      onSelect: () => {},
+      icon: Terminal, category: "View", shortcut: "Ctrl+B",
+      onSelect: () => window.dispatchEvent(new CustomEvent("eugene:toggle-sidebar")),
     },
     {
-      id: "theme-neo", label: "Switch Theme: Neo Dark", description: "Current: Neo Dark",
-      icon: Palette, category: "Theme",
-      onSelect: () => {},
+      id: "theme-cycle", label: "Switch Accent", description: `Current: ${theme}`,
+      icon: Palette, category: "Theme", shortcut: "Ctrl+T",
+      onSelect: cycleTheme,
+    },
+    {
+      id: "mode-toggle", label: mode === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode",
+      description: "Toggle color scheme",
+      icon: Sparkles, category: "Theme",
+      onSelect: toggleMode,
     },
   ];
 
@@ -109,7 +125,6 @@ export function CommandPalette() {
     a.category.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group by category
   const grouped = filtered.reduce<Record<string, Action[]>>((acc, a) => {
     (acc[a.category] ??= []).push(a);
     return acc;
@@ -119,7 +134,6 @@ export function CommandPalette() {
     setActiveIndex(0);
   }, [search]);
 
-  // Flat index for keyboard navigation
   const flatFiltered = filtered;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -138,7 +152,6 @@ export function CommandPalette() {
     }
   };
 
-  // Scroll active item into view
   useEffect(() => {
     const el = listRef.current?.querySelectorAll("[data-action-item]")[activeIndex] as HTMLElement;
     el?.scrollIntoView({ block: "nearest" });
@@ -147,31 +160,28 @@ export function CommandPalette() {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh]">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[15vh]">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute inset-0"
-            style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
             onClick={() => setOpen(false)}
           />
 
           {/* Panel */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -8 }}
+            initial={{ opacity: 0, scale: 0.98, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -8 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="command-palette relative w-full max-w-[560px] overflow-hidden"
+            exit={{ opacity: 0, scale: 0.98, y: 8 }}
+            transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+            className="cmd-palette glass-panel w-full max-w-[680px] rounded-2xl overflow-hidden"
           >
             {/* Search input */}
-            <div
-              className="flex items-center gap-3 px-4 py-3.5"
-              style={{ borderBottom: "1px solid var(--border)" }}
-            >
+            <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: "1px solid var(--border)" }}>
               <Command className="w-4 h-4 shrink-0" style={{ color: "var(--accent)" }} />
               <input
                 ref={inputRef}
@@ -179,29 +189,22 @@ export function CommandPalette() {
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a command or search..."
-                className="flex-1 bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+                className="cmd-palette-input outline-none focus:outline-none"
               />
-              <div className="flex items-center gap-1.5">
-                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-[var(--muted-foreground)]"
-                  style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>ESC</kbd>
-              </div>
+              <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-[var(--fg-muted)]" style={{ background: "var(--surface-elevated)", border: "1px solid var(--border)" }}>ESC</kbd>
             </div>
 
             {/* Results */}
-            <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: "55vh" }}>
+            <div ref={listRef} className="cmd-palette-list">
               {flatFiltered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Search className="w-6 h-6 text-[var(--muted-foreground)] opacity-30 mb-3" />
-                  <p className="text-sm text-[var(--muted-foreground)]">No results for "{search}"</p>
+                  <Search className="w-6 h-6 text-[var(--fg-muted)] opacity-30 mb-3" />
+                  <p className="text-sm text-[var(--fg-muted)]">No results for &ldquo;{search}&rdquo;</p>
                 </div>
               ) : (
                 Object.entries(grouped).map(([category, actions]) => (
-                  <div key={category} className="py-1">
-                    <div className="px-4 py-1.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                        {category}
-                      </span>
-                    </div>
+                  <div key={category}>
+                    <div className="cmd-palette-section">{category}</div>
                     {actions.map(action => {
                       const globalIdx = flatFiltered.indexOf(action);
                       const isActive = globalIdx === activeIndex;
@@ -212,32 +215,23 @@ export function CommandPalette() {
                           data-action-item
                           onClick={() => { action.onSelect(); setOpen(false); }}
                           onMouseEnter={() => setActiveIndex(globalIdx)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
-                            style={{
-                              background: isActive ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
-                              borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-                            }}
+                          className={cn("cmd-palette-item", isActive && "selected")}
                         >
-                          <div style={{ color: isActive ? "var(--accent)" : "var(--muted-foreground)" }}>
-                            <Icon className="w-4 h-4 shrink-0" />
-                          </div>
-                          <div className="flex-1 text-left min-w-0">
-                            <span style={{ color: isActive ? "var(--foreground)" : "var(--foreground)" }}>{action.label}</span>
-                            {action.description && (
-                              <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
-                                {action.description}
-                              </p>
-                            )}
+                          <div className="cmd-palette-item-main">
+                            <div style={{ color: isActive ? "var(--accent)" : "var(--fg-muted)" }}>
+                              <Icon className="cmd-palette-item-icon" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span style={{ color: isActive ? "var(--fg)" : "var(--fg)" }}>{action.label}</span>
+                              {action.description && (
+                                <p className="cmd-palette-item-desc">{action.description}</p>
+                              )}
+                            </div>
                           </div>
                           {action.shortcut && (
-                            <kbd className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono"
-                              style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
-                              {action.shortcut}
-                            </kbd>
+                            <kbd className="cmd-palette-item-shortcut">{action.shortcut}</kbd>
                           )}
-                          {isActive && (
-                            <ArrowRight className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent)" }} />
-                          )}
+                          {isActive && <ArrowRight className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent)" }} />}
                         </button>
                       );
                     })}
@@ -248,15 +242,15 @@ export function CommandPalette() {
 
             {/* Footer */}
             <div
-              className="flex items-center justify-between px-4 py-2 text-[10px] text-[var(--muted-foreground)]"
-              style={{ borderTop: "1px solid var(--border)", background: "rgba(0,0,0,0.2)" }}
+              className="flex items-center justify-between px-4 py-2 text-[10px] text-[var(--fg-muted)]"
+              style={{ borderTop: "1px solid var(--border)", background: "var(--bg-elevated, rgba(0,0,0,0.15))" }}
             >
               <span>
-                <kbd className="px-1 py-0.5 rounded font-mono" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>↑↓</kbd>
+                <kbd className="px-1 py-0.5 rounded font-mono" style={{ background: "var(--surface-elevated)", border: "1px solid var(--border)" }}>↑↓</kbd>
                 {" "} navigate
               </span>
               <span>
-                <kbd className="px-1 py-0.5 rounded font-mono" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>↵</kbd>
+                <kbd className="px-1 py-0.5 rounded font-mono" style={{ background: "var(--surface-elevated)", border: "1px solid var(--border)" }}>↵</kbd>
                 {" "} select
               </span>
               <span>{flatFiltered.length} commands</span>

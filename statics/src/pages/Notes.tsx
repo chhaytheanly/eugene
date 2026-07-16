@@ -6,6 +6,7 @@ import { useToast } from "../components/ToastProvider";
 import { Markdown } from "../components/Markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/utils";
+import { Modal } from "../components/ui/Modal";
 
 export default function Notes() {
   const { data: notes = [], loading, error, execute: loadNotes, setData: setNotes } = useAsync<any[]>(getNotes, []);
@@ -18,8 +19,7 @@ export default function Notes() {
 
   useEffect(() => { loadNotes(); }, [loadNotes]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async () => {
     if (!newTitle.trim() || !newContent.trim()) return;
     const tempId = "temp-" + Date.now();
     const tempNote = { id: tempId, title: newTitle, content: newContent, createdAt: new Date().toISOString() };
@@ -51,37 +51,36 @@ export default function Notes() {
   );
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
+    <div className="flex flex-col h-full" style={{ background: "transparent" }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 shrink-0 glass" style={{ borderBottom: "1px solid var(--border)", minHeight: 52 }}>
+      <header className="flex items-center justify-between px-6 py-3 shrink-0 glass-terminal" style={{ borderBottom: "1px solid var(--border)", minHeight: 52 }}>
         <div className="flex items-center gap-3">
           <BookOpen className="w-4 h-4" style={{ color: "var(--accent)" }} />
           <div>
-            <span className="text-sm font-semibold text-[var(--foreground)]">Notes</span>
-            <span className="text-xs text-[var(--muted-foreground)] ml-2">{notes.length} files</span>
+            <span className="text-sm font-semibold text-[var(--fg)]">Notes</span>
+            <span className="text-xs text-[var(--fg-muted)] ml-2">{notes.length} files</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
-            <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+          <div className="relative flex-1 max-w-xs">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)]" />
             <input
               type="text"
               placeholder="Search notes..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="bg-transparent text-xs focus:outline-none placeholder:text-[var(--muted-foreground)] w-32"
+              className="w-full pl-9 pr-3 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
           <button
-            onClick={() => { setIsCreating(!isCreating); setExpanded(null); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{ background: isCreating ? "var(--muted)" : "var(--accent)", color: isCreating ? "var(--muted-foreground)" : "var(--accent-foreground)" }}
+            onClick={() => { setIsCreating(true); setExpanded(null); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors btn-terminal primary"
           >
             <Plus className="w-3.5 h-3.5" />
-            {isCreating ? "Cancel" : "New Note"}
+            New Note
           </button>
         </div>
-      </div>
+      </header>
 
       {error && (
         <div className="px-6 py-2 flex items-center gap-2 text-xs" style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
@@ -91,54 +90,53 @@ export default function Notes() {
         </div>
       )}
 
-      {/* Create form */}
-      <AnimatePresence>
-        {isCreating && (
-          <motion.form
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            onSubmit={handleCreate}
-            className="shrink-0 overflow-hidden"
-            style={{ borderBottom: "1px solid var(--border)" }}
-          >
-            <div className="px-6 py-4 space-y-3" style={{ background: "var(--surface)" }}>
-              <input
-                type="text"
-                placeholder="Note title"
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                className="w-full bg-transparent text-sm font-medium focus:outline-none placeholder:text-[var(--muted-foreground)] border-b pb-2"
-                style={{ borderColor: "var(--border)" }}
-                autoFocus
-              />
-              <textarea
-                placeholder="Markdown content..."
-                value={newContent}
-                onChange={e => setNewContent(e.target.value)}
-                rows={5}
-                className="w-full bg-transparent text-sm resize-none focus:outline-none placeholder:text-[var(--muted-foreground)] font-mono"
-              />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setIsCreating(false)} className="px-3 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">Cancel</button>
-                <button type="submit" disabled={!newTitle.trim() || !newContent.trim()} className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40" style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}>Save Note</button>
-              </div>
-            </div>
-          </motion.form>
-        )}
-      </AnimatePresence>
+      <Modal
+        open={isCreating}
+        onClose={() => setIsCreating(false)}
+        title="New Note"
+        description="Create a markdown note."
+        footer={
+          <>
+            <button type="button" onClick={() => setIsCreating(false)} className="px-3 py-1.5 rounded text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors btn-terminal outline">Cancel</button>
+            <button
+              type="button"
+              disabled={!newTitle.trim() || !newContent.trim()}
+              onClick={handleCreate}
+              className="px-4 py-1.5 rounded text-xs font-semibold transition-all disabled:opacity-40 btn-terminal primary"
+            >Save Note</button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="Note title"
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm font-medium text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:outline-none focus:border-[var(--accent)]"
+            autoFocus
+          />
+          <textarea
+            placeholder="Markdown content..."
+            value={newContent}
+            onChange={e => setNewContent(e.target.value)}
+            rows={6}
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-3 py-2 text-sm resize-none text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:outline-none focus:border-[var(--accent)] font-mono"
+          />
+        </div>
+      </Modal>
 
       {/* Notes list */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {loading && notes.length === 0 && (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-5 h-5 animate-spin text-[var(--muted-foreground)]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--fg-muted)]" />
           </div>
         )}
         {!loading && filteredNotes.length === 0 && !isCreating && !error && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <FileText className="w-10 h-10 mb-4 opacity-10" style={{ color: "var(--accent)" }} />
-            <p className="text-sm text-[var(--muted-foreground)]">{searchQuery ? "No notes match your search" : "No notes yet"}</p>
+            <p className="text-sm text-[var(--fg-muted)]">{searchQuery ? "No notes match your search" : "No notes yet"}</p>
           </div>
         )}
         <div className="space-y-2">
@@ -154,16 +152,16 @@ export default function Notes() {
               >
                 <button
                   onClick={() => setExpanded(isExpanded ? null : note.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--muted)] transition-colors group"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--surface-elevated)] transition-colors group"
                 >
-                  <FileText className="w-4 h-4 shrink-0 text-[var(--muted-foreground)]" />
+                  <FileText className="w-4 h-4 shrink-0 text-[var(--fg-muted)]" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-[var(--foreground)] truncate block">{note.title}</span>
-                    <span className="text-[10px] text-[var(--muted-foreground)]">{note.content?.length || 0} chars</span>
+                    <span className="text-sm font-medium text-[var(--fg)] truncate block">{note.title}</span>
+                    <span className="text-[10px] text-[var(--fg-muted)]">{note.content?.length || 0} chars</span>
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); handleDelete(note.id); }}
-                    className={cn("p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-red-400 transition-all", isExpanded ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                    className={cn("p-1.5 rounded text-[var(--fg-muted)] hover:text-red-400 transition-all", isExpanded ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

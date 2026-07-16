@@ -44,7 +44,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const langLabel = LANGUAGE_LABELS[language.toLowerCase()] || language.toUpperCase();
-  const langColor = LANGUAGE_COLORS[langLabel] || "var(--muted-foreground)";
+  const langColor = LANGUAGE_COLORS[langLabel] || "var(--fg-muted)";
   const lines = code.split("\n");
 
   const handleCopy = () => {
@@ -63,7 +63,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCollapsed(c => !c)}
-            className="p-0.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
             title={collapsed ? "Expand" : "Collapse"}
           >
             {collapsed
@@ -82,7 +82,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
             {langLabel}
           </span>
           {!collapsed && (
-            <span className="text-[10px] text-[var(--muted-foreground)] ml-1">
+            <span className="text-[10px] text-[var(--fg-muted)] ml-1">
               {lines.length} lines
             </span>
           )}
@@ -90,13 +90,13 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
 
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all"
+          className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium transition-all"
           style={{
-            color: copied ? "rgb(74, 222, 128)" : "var(--muted-foreground)",
+            color: copied ? "rgb(74, 222, 128)" : "var(--fg-muted)",
             background: copied ? "rgba(74, 222, 128, 0.1)" : "transparent",
           }}
-          onMouseEnter={e => { if (!copied) (e.currentTarget as HTMLElement).style.color = "var(--foreground)"; }}
-          onMouseLeave={e => { if (!copied) (e.currentTarget as HTMLElement).style.color = "var(--muted-foreground)"; }}
+          onMouseEnter={e => { if (!copied) (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+          onMouseLeave={e => { if (!copied) (e.currentTarget as HTMLElement).style.color = "var(--fg-muted)"; }}
         >
           {copied
             ? <><Check className="w-3.5 h-3.5" />Copied</>
@@ -126,7 +126,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
                   </td>
                   <td className="py-0 pr-4" style={{ lineHeight: "1.6" }}>
                     <code
-                      className="text-[12.5px] text-[var(--foreground)] whitespace-pre"
+                      className="text-[12.5px] text-[var(--fg)] whitespace-pre"
                       style={{ fontFamily: "var(--font-mono)" }}
                     >
                       {line || " "}
@@ -141,7 +141,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
 
       {collapsed && (
         <div
-          className="px-4 py-2 text-[11px] text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--foreground)] transition-colors"
+          className="px-4 py-2 text-[11px] text-[var(--fg-muted)] cursor-pointer hover:text-[var(--fg)] transition-colors"
           onClick={() => setCollapsed(false)}
         >
           {lines.length} lines hidden — click to expand
@@ -155,18 +155,18 @@ export function Markdown({ content, className }: { content: string; className?: 
   return (
     <div
       className={cn(
-        "prose prose-sm max-w-none prose-invert prose-neo text-[13.5px] leading-[1.7]",
+        "prose prose-sm max-w-none prose-invert prose-terminal text-[13.5px] leading-[1.7]",
         className
       )}
       style={{
-        "--tw-prose-body": "var(--foreground)",
-        "--tw-prose-headings": "var(--foreground)",
-        "--tw-prose-bold": "var(--foreground)",
+        "--tw-prose-body": "var(--fg)",
+        "--tw-prose-headings": "var(--fg)",
+        "--tw-prose-bold": "var(--fg)",
         "--tw-prose-code": "var(--accent)",
         "--tw-prose-pre-bg": "var(--code-bg)",
-        "--tw-prose-pre-code": "var(--foreground)",
+        "--tw-prose-pre-code": "var(--fg)",
         "--tw-prose-links": "var(--accent)",
-        "--tw-prose-bullets": "var(--muted-foreground)",
+        "--tw-prose-bullets": "var(--fg-muted)",
         "--tw-prose-hr": "var(--border)",
         "--tw-prose-th-borders": "var(--border)",
         "--tw-prose-td-borders": "var(--border)",
@@ -184,11 +184,11 @@ export function Markdown({ content, className }: { content: string; className?: 
 
             return (
               <code
-                className="px-1.5 py-0.5 rounded-md text-[12.5px]"
+                className="px-1.5 py-0.5 rounded text-[12.5px]"
                 style={{
-                  background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                  background: "var(--accent-dim)",
                   color: "var(--accent)",
-                  border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)",
+                  border: "1px solid var(--accent-dim)",
                   fontFamily: "var(--font-mono)",
                 }}
                 {...props}
@@ -198,7 +198,6 @@ export function Markdown({ content, className }: { content: string; className?: 
             );
           },
           pre({ children }: any) {
-            // Let our code component handle it
             return <>{children}</>;
           },
           a({ href, children, ...props }: any) {
@@ -207,7 +206,7 @@ export function Markdown({ content, className }: { content: string; className?: 
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: "var(--accent)", textDecoration: "underline", textDecorationColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
+                style={{ color: "var(--accent)", textDecoration: "underline", textDecorationColor: "var(--accent-dim)" }}
                 {...props}
               >
                 {children}
@@ -220,7 +219,7 @@ export function Markdown({ content, className }: { content: string; className?: 
                 style={{
                   borderLeft: "3px solid var(--accent)",
                   paddingLeft: "1rem",
-                  color: "var(--muted-foreground)",
+                  color: "var(--fg-muted)",
                   fontStyle: "italic",
                   margin: "1rem 0",
                 }}
@@ -238,14 +237,14 @@ export function Markdown({ content, className }: { content: string; className?: 
           },
           th({ children }: any) {
             return (
-              <th style={{ background: "var(--surface)", padding: "8px 12px", textAlign: "left", borderBottom: "1px solid var(--border)", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted-foreground)" }}>
+              <th style={{ background: "var(--surface)", padding: "8px 12px", textAlign: "left", borderBottom: "1px solid var(--border)", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--fg-muted)" }}>
                 {children}
               </th>
             );
           },
           td({ children }: any) {
             return (
-              <td style={{ padding: "8px 12px", borderBottom: "1px solid rgba(42,52,65,0.5)", color: "var(--foreground)" }}>
+              <td style={{ padding: "8px 12px", borderBottom: "1px solid rgba(42,52,65,0.5)", color: "var(--fg)" }}>
                 {children}
               </td>
             );

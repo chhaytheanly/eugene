@@ -5,13 +5,16 @@ import Tasks from "./pages/Tasks";
 import Notes from "./pages/Notes";
 import Calendar from "./pages/Calendar";
 import Memory from "./pages/Memory";
+import Settings from "./pages/Settings";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/ToastProvider";
+import Background from "./components/Background";
 
 function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
+        <Background />
         <BrowserRouter>
           <Layout>
             <Routes>
@@ -20,7 +23,7 @@ function App() {
               <Route path="/notes" element={<Notes />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/memory" element={<Memory />} />
-              <Route path="/settings" element={<Chat />} />
+              <Route path="/settings" element={<Settings />} />
             </Routes>
           </Layout>
         </BrowserRouter>

@@ -75,7 +75,7 @@ export default function ModelSwitcher() {
 
   if (models.length === 0) return null;
 
-  const selectedColor = selected ? (providerColor[selected.provider] ?? "var(--accent)") : "var(--muted-foreground)";
+  const selectedColor = selected ? (providerColor[selected.provider] ?? "var(--accent)") : "var(--fg-muted)";
 
   return (
     <div className="relative w-full max-w-[260px]" ref={ref}>
@@ -83,19 +83,18 @@ export default function ModelSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg transition-all text-sm"
+        className="flex items-center gap-2 w-full px-3 py-1.5 rounded text-sm transition-all btn-terminal outline"
         style={{
-          background: open ? "var(--surface-elevated)" : "var(--surface)",
-          border: `1px solid ${open ? "color-mix(in srgb, var(--accent) 50%, transparent)" : "var(--border)"}`,
-          boxShadow: open ? "0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent)" : "none",
+          borderColor: open ? "color-mix(in srgb, var(--accent) 50%, transparent)" : "var(--border)",
+          boxShadow: open ? "0 0 0 2px var(--accent-dim)" : "none",
         }}
       >
         <div className="w-2 h-2 rounded-full shrink-0" style={{ background: selectedColor, boxShadow: `0 0 6px ${selectedColor}80` }} />
-        <span className="flex-1 truncate text-left text-sm text-[var(--foreground)]">
+        <span className="flex-1 truncate text-left text-sm text-[var(--fg)]">
           {selected?.name ?? "Select model"}
         </span>
         <ChevronDown
-          className="w-3.5 h-3.5 shrink-0 text-[var(--muted-foreground)] transition-transform"
+          className="w-3.5 h-3.5 shrink-0 text-[var(--fg-muted)] transition-transform"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
         />
       </button>
@@ -103,25 +102,25 @@ export default function ModelSwitcher() {
       {/* Dropdown */}
       {open && (
         <div
-          className="absolute top-full mt-2 left-0 right-0 z-[200] rounded-xl overflow-hidden"
+          className="absolute top-full mt-2 left-0 right-0 z-[200] rounded-lg overflow-hidden"
           style={{
             background: "rgba(13,18,28,0.97)",
             border: "1px solid var(--border)",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px color-mix(in srgb, var(--accent) 5%, transparent)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px var(--border-bright)",
             backdropFilter: "blur(16px)",
             minWidth: 260,
           }}
         >
           {/* Search */}
           <div className="p-2" style={{ borderBottom: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: "var(--muted)" }}>
-              <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" />
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-[var(--muted)]">
+              <Search className="w-3.5 h-3.5 text-[var(--fg-muted)] shrink-0" />
               <input
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search models..."
-                className="w-full bg-transparent text-xs text-[var(--foreground)] focus:outline-none placeholder:text-[var(--muted-foreground)]"
+                className="w-full bg-transparent text-xs text-[var(--fg)] focus:outline-none placeholder:text-[var(--fg-muted)]"
               />
             </div>
           </div>
@@ -129,8 +128,8 @@ export default function ModelSwitcher() {
           {/* Results */}
           <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
             {filtered.length === 0 && (
-              <div className="px-4 py-6 text-center text-xs text-[var(--muted-foreground)]">
-                No models match "{query}"
+              <div className="px-4 py-6 text-center text-xs text-[var(--fg-muted)]">
+                No models match &ldquo;{query}&rdquo;
               </div>
             )}
             {Object.entries(grouped).map(([provider, list]) => (
@@ -142,12 +141,12 @@ export default function ModelSwitcher() {
                 >
                   <div
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: providerColor[provider] ?? "var(--muted-foreground)" }}
+                    style={{ background: providerColor[provider] ?? "var(--fg-muted)" }}
                   />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--fg-subtle)]">
                     {providerLabel[provider] ?? provider}
                   </span>
-                  <span className="text-[10px] text-[var(--muted-foreground)] opacity-50 ml-auto">{list.length}</span>
+                  <span className="text-[10px] text-[var(--fg-muted)] opacity-50 ml-auto">{list.length}</span>
                 </div>
 
                 {list.map((m) => {
@@ -162,20 +161,18 @@ export default function ModelSwitcher() {
                         isActive ? "text-[var(--accent)]" : "hover:bg-[var(--muted)]"
                       )}
                       style={{
-                        background: isActive ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
+                        background: isActive ? "var(--accent-dim)" : "transparent",
                       }}
                     >
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className={cn("text-xs font-medium truncate", isActive ? "text-[var(--accent)]" : "text-[var(--foreground)]")}>
+                        <span className={cn("text-xs font-medium truncate", isActive ? "text-[var(--accent)]" : "text-[var(--fg)]")}>
                           {m.name}
                         </span>
-                        <span className="text-[10px] text-[var(--muted-foreground)] truncate mt-0.5 font-mono">
+                        <span className="text-[10px] text-[var(--fg-muted)] truncate mt-0.5 font-mono">
                           {m.id}
                         </span>
                       </div>
-                      {isActive && (
-                        <Check className="w-3.5 h-3.5 shrink-0 text-[var(--accent)]" />
-                      )}
+                      {isActive && <Check className="w-3.5 h-3.5 shrink-0 text-[var(--accent)]" />}
                     </button>
                   );
                 })}
@@ -185,7 +182,7 @@ export default function ModelSwitcher() {
 
           {/* Footer */}
           <div
-            className="flex items-center justify-between px-3 py-2 text-[10px] text-[var(--muted-foreground)]"
+            className="flex items-center justify-between px-3 py-2 text-[10px] text-[var(--fg-muted)]"
             style={{ borderTop: "1px solid var(--border)", background: "rgba(0,0,0,0.2)" }}
           >
             <div className="flex items-center gap-1.5">
