@@ -12,10 +12,10 @@ export async function searchNotesByEmbedding(
       id,
       title,
       content,
-      1 - (embedding <-> ${vector}::vector) AS similarity
+      1 - (embedding <=> ${vector}::vector) AS similarity
     FROM "Note"
     WHERE embedding IS NOT NULL
-    ORDER BY embedding <-> ${vector}::vector
+    ORDER BY embedding <=> ${vector}::vector
     LIMIT ${limit}
   `;
 }

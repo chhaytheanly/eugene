@@ -26,7 +26,7 @@ export async function getEmbedding(text: string) {
     providers.push({
       type: "openai",
       client: getOpenRouter(),
-      model: "google/gemini-embedding-001:free",
+      model: "openai/text-embedding-3-small",
     });
   }
 
