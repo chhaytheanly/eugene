@@ -146,6 +146,18 @@
       radial-gradient(900px 600px at 12% -10%, var(--accent-dim), transparent 60%),
       radial-gradient(700px 500px at 95% 110%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%);
   }
+
+  @keyframes pulse-glow {
+    0% {
+      opacity: 0.15;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 0.35;
+      transform: scale(1.05);
+    }
+  }
+
   .glass-panel {
     background: var(--glass);
     backdrop-filter: blur(20px) saturate(140%);

@@ -6,6 +6,7 @@ import Notes from "./pages/Notes";
 import Calendar from "./pages/Calendar";
 import Memory from "./pages/Memory";
 import Settings from "./pages/Settings";
+import Developer from "./pages/Developer";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/ToastProvider";
 import Background from "./components/Background";
@@ -24,6 +25,7 @@ function App() {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/memory" element={<Memory />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/developer" element={<Developer />} />
             </Routes>
           </Layout>
         </BrowserRouter>

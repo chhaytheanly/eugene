@@ -26,11 +26,9 @@ import {
   StopCircle,
 } from "lucide-react";
 
-// ---------- constants ----------
 const STORAGE_KEY = "eugene:selectedModel";
 const HISTORY_KEY = "eugene:chatHistory";
 
-// ---------- types ----------
 type Message = {
   id: string;
   role: "user" | "assistant";
@@ -39,7 +37,6 @@ type Message = {
 
 type Reaction = "like" | "helpful" | "dislike";
 
-// ---------- helpers ----------
 const uid = () => `m_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 function getSelected() {
@@ -47,7 +44,6 @@ function getSelected() {
   return saved ? JSON.parse(saved) : null;
 }
 
-// ---------- custom hooks ----------
 function useLocalStorage<T>(key: string, initial: T) {
   const [state, setState] = useState<T>(() => {
     try {
@@ -84,7 +80,6 @@ function useScrollToBottom(containerRef: React.RefObject<HTMLElement | null>) {
   return { showButton, scrollToBottom };
 }
 
-// ---------- subcomponents ----------
 const TypingIndicator = memo(() => (
   <div className="flex items-center gap-1.5 py-2">
     <div className="flex items-center gap-1.5">
@@ -322,15 +317,15 @@ const Message = memo(function Message({
               borderRadius: 16,
               ...(isAssistant
                 ? {
-                    background: "var(--assistant-bubble)",
-                    border: "1px solid var(--border)",
-                  }
+                  background: "var(--assistant-bubble)",
+                  border: "1px solid var(--border)",
+                }
                 : {
-                    background: "var(--user-bubble)",
-                    border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-                    backgroundImage:
-                      "linear-gradient(135deg, var(--user-bubble), color-mix(in srgb, var(--accent) 5%, transparent))",
-                  }),
+                  background: "var(--user-bubble)",
+                  border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+                  backgroundImage:
+                    "linear-gradient(135deg, var(--user-bubble), color-mix(in srgb, var(--accent) 5%, transparent))",
+                }),
             }}
           >
             {isAssistant ? (
@@ -350,7 +345,7 @@ const Message = memo(function Message({
             <MessageActions
               onCopy={() => navigator.clipboard.writeText(message.content)}
               onRegenerate={isAssistant ? onRegenerate : undefined}
-              onEdit={onEditSave} // Placeholder, actual edit is triggered by parent
+              onEdit={onEditSave}
               onDelete={onDelete}
               reaction={reaction}
               onReact={onReact}
@@ -469,9 +464,8 @@ function EmptyState() {
   );
 }
 
-// ---------- main Chat component ----------
 export default function Chat() {
-  // ---------- state ----------
+
   const [messages, setMessages] = useLocalStorage<Message[]>(HISTORY_KEY, []);
   const safeMessages = Array.isArray(messages) ? messages : [];
   const [conversationId, setConversationId] = useLocalStorage<string | undefined>(
@@ -495,21 +489,18 @@ export default function Chat() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
-  // ---------- refs ----------
+
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // ---------- scroll ----------
+
   const { showButton: showScrollBtn, scrollToBottom } = useScrollToBottom(messagesContainerRef);
 
-  // ---------- side effects ----------
-  // Auto-scroll on new messages
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading, scrollToBottom]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -573,7 +564,7 @@ export default function Chat() {
                 })
               );
             },
-            onTool: () => {},
+            onTool: () => { },
             onDone: (convId: string) => {
               setConversationId(convId);
               setIsLoading(false);

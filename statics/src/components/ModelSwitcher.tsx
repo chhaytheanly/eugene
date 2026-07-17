@@ -102,12 +102,11 @@ export default function ModelSwitcher() {
       {/* Dropdown */}
       {open && (
         <div
-          className="absolute top-full mt-2 left-0 right-0 z-[200] rounded-lg overflow-hidden"
+          className="absolute top-full mt-2 left-0 right-0 z-[200] rounded-lg overflow-hidden shadow-2xl"
           style={{
-            background: "rgba(13,18,28,0.97)",
+            background: "var(--glass)",
             border: "1px solid var(--border)",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px var(--border-bright)",
-            backdropFilter: "blur(16px)",
+            backdropFilter: "blur(20px) saturate(140%)",
             minWidth: 260,
           }}
         >
@@ -136,8 +135,7 @@ export default function ModelSwitcher() {
               <div key={provider}>
                 {/* Provider header */}
                 <div
-                  className="flex items-center gap-2 px-3 py-2"
-                  style={{ borderBottom: "1px solid rgba(42,52,65,0.5)" }}
+                  className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)]"
                 >
                   <div
                     className="w-1.5 h-1.5 rounded-full"
@@ -182,8 +180,7 @@ export default function ModelSwitcher() {
 
           {/* Footer */}
           <div
-            className="flex items-center justify-between px-3 py-2 text-[10px] text-[var(--fg-muted)]"
-            style={{ borderTop: "1px solid var(--border)", background: "rgba(0,0,0,0.2)" }}
+            className="flex items-center justify-between px-3 py-2 text-[10px] text-[var(--fg-muted)] border-t border-[var(--border)] bg-[var(--surface-elevated)]"
           >
             <div className="flex items-center gap-1.5">
               <Cpu className="w-3 h-3" />

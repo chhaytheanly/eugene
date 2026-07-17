@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   MessageSquare, CheckSquare, StickyNote, Calendar, BrainCircuit, Settings,
   MessageSquareDot, CheckSquare2, BookOpen, CalendarDays, Brain, SettingsIcon,
-  PanelLeftClose, PanelLeftOpen, Terminal
+  PanelLeftClose, PanelLeftOpen, Terminal, Code2, Code
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -12,7 +12,7 @@ import { CommandPalette } from "./CommandPalette";
 import { StatusBar } from "./StatusBar";
 import { motion, AnimatePresence } from "framer-motion";
 
-type ActivitySection = "chat" | "tasks" | "notes" | "calendar" | "memory" | "settings";
+type ActivitySection = "chat" | "tasks" | "notes" | "calendar" | "memory" | "settings" | "developer";
 
 interface NavItem {
   id: ActivitySection;
@@ -31,6 +31,7 @@ const navItems: NavItem[] = [
   { id: "calendar", path: "/calendar", label: "Calendar", Icon: Calendar, FilledIcon: CalendarDays, tooltip: "Calendar", shortKey: "4" },
   { id: "memory", path: "/memory", label: "Memory", Icon: BrainCircuit, FilledIcon: Brain, tooltip: "Memory", shortKey: "5" },
   { id: "settings", path: "/settings", label: "Settings", Icon: Settings, FilledIcon: SettingsIcon, tooltip: "Settings", shortKey: "6" },
+  { id: "developer", path: "/developer", label: "Developer", Icon: Code, FilledIcon: Code2, tooltip: "Developer", shortKey: "7" },
 ];
 
 function pathToSection(path: string): ActivitySection {
@@ -40,6 +41,7 @@ function pathToSection(path: string): ActivitySection {
   if (path.startsWith("/calendar")) return "calendar";
   if (path.startsWith("/memory")) return "memory";
   if (path.startsWith("/settings")) return "settings";
+  if (path.startsWith("/developer")) return "developer";
   return "chat";
 }
 
@@ -71,11 +73,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveSection(pathToSection(location.pathname));
   }, [location.pathname]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "6") {
+    if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "7") {
       e.preventDefault();
       const idx = parseInt(e.key, 10) - 1;
       if (navItems[idx]) {

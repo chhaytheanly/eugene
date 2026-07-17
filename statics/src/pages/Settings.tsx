@@ -2,7 +2,7 @@ import { Palette, Cpu, Eye, Key, BrainCircuit, Keyboard, Check, Info } from "luc
 import { useState } from "react";
 import ModelSwitcher from "../components/ModelSwitcher";
 import { cn } from "../lib/utils";
-import { useTheme, type Theme, themeLabels } from "../components/ThemeProvider";
+import { useTheme, type Theme, type BgEffect, themeLabels } from "../components/ThemeProvider";
 
 const sections = [
   { id: "theme", label: "Theme", icon: Palette },
@@ -27,7 +27,7 @@ const themeColors: Record<Theme, string> = {
 
 export default function Settings() {
   const [active, setActive] = useState("theme");
-  const { theme, setTheme, mode, toggleMode } = useTheme();
+  const { theme, setTheme, mode, toggleMode, bgEffect, setBgEffect } = useTheme();
 
   return (
     <div className="flex flex-col h-full">
@@ -129,21 +129,47 @@ export default function Settings() {
             <div className="max-w-md">
               <h2 className="text-sm font-semibold text-[var(--fg)] mb-1">Appearance</h2>
               <p className="text-xs text-[var(--fg-muted)] mb-4">Customize the visual appearance.</p>
-              <button
-                onClick={toggleMode}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-elevated)] transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <Eye className="w-4 h-4 text-[var(--fg-muted)] shrink-0" />
-                  <div>
-                    <span className="text-sm text-[var(--fg)] block">Color Mode</span>
-                    <span className="text-xs text-[var(--fg-muted)]">{mode === "dark" ? "Dark" : "Light"}</span>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xs font-medium text-[var(--fg-muted)] mb-2 uppercase tracking-wider">Color Mode</h3>
+                  <button
+                    onClick={toggleMode}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-elevated)] transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Eye className="w-4 h-4 text-[var(--fg-muted)] shrink-0" />
+                      <div>
+                        <span className="text-sm text-[var(--fg)] block">Theme Mode</span>
+                        <span className="text-xs text-[var(--fg-muted)]">{mode === "dark" ? "Dark" : "Light"}</span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 rounded text-xs font-mono border border-[var(--border)] text-[var(--fg-muted)]">
+                      {mode === "dark" ? "☾" : "☀"}
+                    </span>
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-xs font-medium text-[var(--fg-muted)] mb-2 uppercase tracking-wider">Background Effect</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["matrix", "particles", "gradient", "none"] as BgEffect[]).map((effect) => (
+                      <button
+                        key={effect}
+                        onClick={() => setBgEffect(effect)}
+                        className={cn(
+                          "px-4 py-3 rounded-lg border text-sm transition-all text-left",
+                          bgEffect === effect
+                            ? "bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] border-[var(--accent)] text-[var(--accent)]"
+                            : "bg-[var(--surface)] border-[var(--border)] text-[var(--fg)] hover:bg-[var(--surface-elevated)]"
+                        )}
+                      >
+                        <span className="capitalize">{effect}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <span className="px-2 py-1 rounded text-xs font-mono border border-[var(--border)] text-[var(--fg-muted)]">
-                  {mode === "dark" ? "☾" : "☀"}
-                </span>
-              </button>
+              </div>
             </div>
           )}
 
